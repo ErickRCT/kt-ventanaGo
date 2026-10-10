@@ -14,8 +14,8 @@ android {
         applicationId = "cl.ventanago.movil"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.4.0"
+        versionCode = 5
+        versionName = "0.5.0"
 
         // Mismo backend (Render) y misma carpeta de imágenes (front en Vercel) que la versión web.
         buildConfigField("String", "API_BASE_URL", "\"https://ventanago-api.onrender.com\"")

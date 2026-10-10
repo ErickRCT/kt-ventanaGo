@@ -70,7 +70,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** Roles que ya tienen pantallas en la app. */
-private val ROLES_APP = setOf("ADMIN", "CLIENTE")
+private val ROLES_APP = setOf("ADMIN", "CLIENTE", "PROVEEDOR")
 
 /**
  * Ingreso: los clientes con un código que llega a su correo (sin contraseña) y el administrador con
@@ -186,7 +186,7 @@ fun PantallaLogin(autenticacion: Autenticacion) {
             ) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                        listOf(true to "Soy cliente", false to "Administrador").forEachIndexed { i, (cliente, texto) ->
+                        listOf(true to "Soy cliente", false to "Empresa o admin").forEachIndexed { i, (cliente, texto) ->
                             SegmentedButton(
                                 selected = esCliente == cliente,
                                 onClick = {

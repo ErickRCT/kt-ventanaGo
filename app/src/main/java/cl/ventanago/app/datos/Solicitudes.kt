@@ -124,3 +124,28 @@ object ClienteApi {
             Api.enviar("POST", "/auth/codigo/verificar", VerificacionCodigo(email, codigo), VerificacionCodigo.serializer()),
         )
 }
+
+/** Lo que la empresa decide sobre una solicitud. Solo se usan id, medidas, cantidad y precio de cada ventana. */
+@Serializable
+data class RespuestaSolicitud(
+    /** ACEPTADA, MODIFICADA o RECHAZADA. */
+    val estado: String,
+    val mensaje: String,
+    val items: List<ItemVentana>,
+    val notificarEnApp: Boolean,
+    val notificarPorCorreo: Boolean,
+)
+
+/** Panel de empresa (proveedores y administrador): solicitudes de los clientes. */
+object EmpresaApi {
+    /** Proveedores y administrador reciben todas. */
+    suspend fun solicitudes(): List<Solicitud> = Api.lista("/solicitudes", Solicitud.serializer())
+
+    suspend fun responder(numero: Long, respuesta: RespuestaSolicitud): Solicitud =
+        Api.json.decodeFromString(
+            Solicitud.serializer(),
+            Api.enviar("POST", "/solicitudes/$numero/respuesta", respuesta, RespuestaSolicitud.serializer()),
+        )
+
+    suspend fun pauta(id: Long): Pauta = Api.get("/pauta/$id", Pauta.serializer())
+}

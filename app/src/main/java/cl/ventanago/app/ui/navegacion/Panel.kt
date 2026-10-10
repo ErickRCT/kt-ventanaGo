@@ -91,6 +91,7 @@ import androidx.compose.foundation.layout.widthIn
 import cl.ventanago.app.datos.Aviso
 import cl.ventanago.app.datos.ClienteApi
 import cl.ventanago.app.ui.modulos.cliente.PantallaCarrito
+import cl.ventanago.app.ui.modulos.empresa.PantallaSolicitudesEmpresa
 import cl.ventanago.app.ui.modulos.cliente.PantallaDisenar
 import cl.ventanago.app.ui.modulos.cliente.PantallaMisCotizaciones
 
@@ -134,7 +135,7 @@ fun Panel(sesion: Sesion, alCerrarSesion: () -> Unit) {
                         nombre = nombre,
                         email = sesion.cuenta.email,
                         alAbrirMenu = { alcance.launch { cajon.open() } },
-                        alAbrirSolicitudes = { pantalla = Pantalla.MIS_COTIZACIONES },
+                        alAbrirSolicitudes = { pantalla = if (rol == "CLIENTE") Pantalla.MIS_COTIZACIONES else Pantalla.SOLICITUDES },
                         alCerrarSesion = alCerrarSesion,
                     )
                 },
@@ -163,6 +164,7 @@ fun Panel(sesion: Sesion, alCerrarSesion: () -> Unit) {
                             Pantalla.DISENAR_VENTANA -> PantallaDisenar(abrir)
                             Pantalla.CARRITO -> PantallaCarrito(sesion.cuenta.email, abrir)
                             Pantalla.MIS_COTIZACIONES -> PantallaMisCotizaciones(abrir)
+                            Pantalla.SOLICITUDES -> PantallaSolicitudesEmpresa()
                             else -> PantallaProximamente(actual)
                         }
                     }
@@ -186,9 +188,9 @@ private fun Encabezado(
     var avisosAbiertos by remember { mutableStateOf(false) }
     var cuentaAbierta by remember { mutableStateOf(false) }
     val alcance = rememberCoroutineScope()
-    // Los avisos son del cliente (respuestas de la empresa); se revisan cada minuto, como la web cada 30 s.
+    // Avisos: el cliente recibe las respuestas y la empresa las solicitudes nuevas; se revisan cada minuto (la web, cada 30 s).
     var avisos by remember { mutableStateOf<List<Aviso>>(emptyList()) }
-    if (rol == "CLIENTE") {
+    if (rol == "CLIENTE" || rol == "PROVEEDOR") {
         LaunchedEffect(Unit) {
             while (true) {
                 try {

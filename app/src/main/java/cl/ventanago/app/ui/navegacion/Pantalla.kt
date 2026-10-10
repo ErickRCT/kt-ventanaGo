@@ -41,7 +41,7 @@ enum class Pantalla(val titulo: String, val icono: ImageVector, val disponible: 
     DISENAR_VENTANA("Diseñar ventana", Icons.Outlined.ViewInAr),
     CARRITO("Carrito", Icons.Outlined.ShoppingCart),
     MIS_COTIZACIONES("Mis cotizaciones", Icons.Outlined.History),
-    SOLICITUDES("Solicitudes", Icons.Outlined.Inbox, disponible = false),
+    SOLICITUDES("Solicitudes", Icons.Outlined.Inbox),
 }
 
 /** [roles]: roles del backend (ADMIN, CLIENTE, PROVEEDOR) que ven el grupo. */
