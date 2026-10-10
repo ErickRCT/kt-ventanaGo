@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import cl.ventanago.app.ar.DetectorAR
 import cl.ventanago.app.ar.RealidadAumentadaActivity
 import cl.ventanago.app.ar.SoporteAR
+import cl.ventanago.app.datos.CarritoLocal
 import cl.ventanago.app.datos.ClienteApi
 import cl.ventanago.app.datos.ColorVentana
 import cl.ventanago.app.datos.Cotizaciones
@@ -117,7 +118,7 @@ private val VIDRIOS_BASICOS = listOf("Incoloro", "Bronce", "Gris").map { Vidrio(
 
 /** Diseñar ventana (equivale a DisenarVentana de la web): elegir pauta, medidas y colores, verla en la pared y agregarla al carrito. */
 @Composable
-fun PantallaDisenar(abrir: (Pantalla) -> Unit) {
+fun PantallaDisenar(abrir: (Pantalla) -> Unit, conCuenta: Boolean = true) {
     var pautas by remember { mutableStateOf<List<PautaCliente>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var recarga by remember { mutableIntStateOf(0) }
@@ -139,7 +140,7 @@ fun PantallaDisenar(abrir: (Pantalla) -> Unit) {
         pautas == null && error != null -> EstadoError(error!!) { error = null; recarga++ }
         pautas == null -> EstadoCargando("Cargando el catálogo de ventanas…")
         elegida == null -> SelectorPauta(pautas!!) { elegidaId = it.pauta.pautaId }
-        else -> ConfigurarVentana(elegida, alCambiarPauta = { elegidaId = null }, abrir = abrir)
+        else -> ConfigurarVentana(elegida, alCambiarPauta = { elegidaId = null }, abrir = abrir, conCuenta = conCuenta)
     }
 }
 
@@ -206,7 +207,7 @@ private fun errorMedida(texto: String, maximo: Int): String? {
 }
 
 @Composable
-private fun ConfigurarVentana(elegida: PautaCliente, alCambiarPauta: () -> Unit, abrir: (Pantalla) -> Unit) {
+private fun ConfigurarVentana(elegida: PautaCliente, alCambiarPauta: () -> Unit, abrir: (Pantalla) -> Unit, conCuenta: Boolean) {
     val context = LocalContext.current
     val avisar = LocalAvisos.current
     val alcance = rememberCoroutineScope()
@@ -404,7 +405,9 @@ private fun ConfigurarVentana(elegida: PautaCliente, alCambiarPauta: () -> Unit,
                 alcance.launch {
                     agregando = true
                     try {
-                        val carrito = ClienteApi.agregar(
+                        // Sin cuenta se guarda en el teléfono; al entrar pasa al carrito de la cuenta.
+                        val agregar: suspend (ItemVentana) -> List<ItemVentana> = if (conCuenta) ClienteApi::agregar else { item -> CarritoLocal.agregar(item) }
+                        val carrito = agregar(
                             ItemVentana(
                                 descripcion = pauta.nombre.trim(),
                                 pautaId = pauta.pautaId,

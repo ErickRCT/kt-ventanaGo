@@ -8,3 +8,4 @@ captures/
 *.apk
 build.log
 build-debug.log
+firma/

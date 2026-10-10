@@ -50,6 +50,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import cl.ventanago.app.datos.BorradorSolicitud
+import cl.ventanago.app.datos.CarritoLocal
 import cl.ventanago.app.datos.ClienteApi
 import cl.ventanago.app.datos.Contacto
 import cl.ventanago.app.datos.ItemVentana
@@ -94,26 +96,42 @@ fun detalleItem(item: ItemVentana) =
 /** Carrito (equivale a Carrito de la web): ajustar cantidades y enviar la solicitud de cotización a la empresa. */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-fun PantallaCarrito(emailCuenta: String, abrir: (Pantalla) -> Unit) {
+fun PantallaCarrito(
+    emailCuenta: String,
+    abrir: (Pantalla) -> Unit,
+    /** false: sin cuenta, el carrito vive en el teléfono y al enviar se pide entrar. */
+    conCuenta: Boolean = true,
+    alPedirIngreso: (String) -> Unit = {},
+) {
     val alcance = rememberCoroutineScope()
-    var items by remember { mutableStateOf<List<ItemVentana>?>(null) }
+    var itemsCuenta by remember { mutableStateOf<List<ItemVentana>?>(null) }
     var errorCarga by remember { mutableStateOf<String?>(null) }
     var recarga by remember { mutableIntStateOf(0) }
     var ocupado by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    var nombre by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf(emailCuenta) }
-    var telefono by remember { mutableStateOf("") }
-    var direccion by remember { mutableStateOf("") }
-    val servicios = remember { mutableStateListOf("FABRICACION") }
-    var observaciones by remember { mutableStateOf("") }
+    // Datos del formulario: parten del borrador guardado (si se escribieron antes de entrar).
+    val borrador = remember { CarritoLocal.borrador }
+    var nombre by remember { mutableStateOf(borrador?.contacto?.nombre.orEmpty()) }
+    var email by remember { mutableStateOf(borrador?.contacto?.email?.takeIf { it.isNotBlank() } ?: emailCuenta) }
+    var telefono by remember { mutableStateOf(borrador?.contacto?.telefono.orEmpty()) }
+    var direccion by remember { mutableStateOf(borrador?.contacto?.direccion.orEmpty()) }
+    val servicios = remember { mutableStateListOf(*(borrador?.servicios ?: listOf("FABRICACION")).toTypedArray()) }
+    var observaciones by remember { mutableStateOf(borrador?.observaciones.orEmpty()) }
     var validar by remember { mutableStateOf(false) }
     var enviada by remember { mutableStateOf<Long?>(null) }
 
+    // Se guarda mientras se escribe, para no perderlo al entrar a la cuenta o cerrar la app.
+    LaunchedEffect(nombre, email, telefono, direccion, servicios.toList(), observaciones) {
+        if (enviada == null) {
+            CarritoLocal.borrador = BorradorSolicitud(Contacto(nombre, email, telefono, direccion), servicios.toList(), observaciones)
+        }
+    }
+
     LaunchedEffect(recarga) {
+        if (!conCuenta) return@LaunchedEffect
         try {
-            items = ClienteApi.carrito()
+            itemsCuenta = ClienteApi.carrito()
             errorCarga = null
         } catch (e: CancellationException) {
             throw e
@@ -123,6 +141,7 @@ fun PantallaCarrito(emailCuenta: String, abrir: (Pantalla) -> Unit) {
     }
     // Los datos de contacto se recuerdan de la última solicitud, como en la web.
     LaunchedEffect(Unit) {
+        if (!conCuenta) return@LaunchedEffect
         try {
             ClienteApi.solicitudes().maxByOrNull { it.numero }?.contacto?.let { c ->
                 if (nombre.isBlank()) nombre = c.nombre
@@ -160,7 +179,14 @@ fun PantallaCarrito(emailCuenta: String, abrir: (Pantalla) -> Unit) {
     val errorDireccion = "Para instalación o flete necesitamos la dirección.".takeIf { necesitaDireccion && direccion.isBlank() }
     val errorServicios = "Elige al menos un servicio.".takeIf { servicios.isEmpty() }
 
-    val lista = items
+    val lista = if (conCuenta) itemsCuenta else CarritoLocal.items
+    // Cambios del carrito: en la cuenta (backend) o en el teléfono.
+    fun cambiarCantidad(item: ItemVentana, cantidad: Int) = accion("Actualizando…") {
+        if (conCuenta) { itemsCuenta = ClienteApi.cambiarCantidad(item.id!!, cantidad) } else { CarritoLocal.cambiarCantidad(item.id!!, cantidad) }
+    }
+    fun quitar(item: ItemVentana) = accion("Quitando…") {
+        if (conCuenta) { itemsCuenta = ClienteApi.quitar(item.id!!) } else { CarritoLocal.quitar(item.id!!) }
+    }
     when {
         lista == null && errorCarga != null -> EstadoError(errorCarga!!) { errorCarga = null; recarga++ }
         lista == null -> EstadoCargando("Cargando tu carrito…")
@@ -178,7 +204,8 @@ fun PantallaCarrito(emailCuenta: String, abrir: (Pantalla) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text("Tu carrito", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text("${lista.sumOf { it.cantidad }} ventanas. La empresa te responderá con el precio.", color = Colores.gris)
+            val unidades = lista.sumOf { it.cantidad }
+            Text("$unidades ${if (unidades == 1) "ventana" else "ventanas"}. La empresa te responderá con el precio.", color = Colores.gris)
             error?.let { MensajeError(it) }
 
             lista.forEach { item ->
@@ -192,16 +219,16 @@ fun PantallaCarrito(emailCuenta: String, abrir: (Pantalla) -> Unit) {
                             item.observaciones?.takeIf { it.isNotBlank() }?.let { Text("Obs.: $it", style = MaterialTheme.typography.bodySmall, color = Colores.gris) }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 IconButton(
-                                    onClick = { accion("Actualizando…") { items = ClienteApi.cambiarCantidad(item.id!!, item.cantidad - 1) } },
+                                    onClick = { cambiarCantidad(item, item.cantidad - 1) },
                                     enabled = item.cantidad > 1 && ocupado == null,
                                 ) { Icon(Icons.Filled.Remove, contentDescription = "Disminuir cantidad") }
                                 Text("${item.cantidad}", fontWeight = FontWeight.Bold)
                                 IconButton(
-                                    onClick = { accion("Actualizando…") { items = ClienteApi.cambiarCantidad(item.id!!, item.cantidad + 1) } },
+                                    onClick = { cambiarCantidad(item, item.cantidad + 1) },
                                     enabled = item.cantidad < 99 && ocupado == null,
                                 ) { Icon(Icons.Filled.Add, contentDescription = "Aumentar cantidad") }
                                 Spacer(Modifier.weight(1f))
-                                IconButton(onClick = { accion("Quitando…") { items = ClienteApi.quitar(item.id!!) } }, enabled = ocupado == null) {
+                                IconButton(onClick = { quitar(item) }, enabled = ocupado == null) {
                                     Icon(Icons.Outlined.DeleteOutline, contentDescription = "Quitar del carrito", tint = Colores.error)
                                 }
                             }
@@ -244,6 +271,11 @@ fun PantallaCarrito(emailCuenta: String, abrir: (Pantalla) -> Unit) {
                                 error = "Revisa los datos marcados en rojo."
                                 return@Button
                             }
+                            if (!conCuenta) {
+                                // Las ventanas y los datos ya están guardados en el teléfono: pasan a la cuenta al entrar.
+                                alPedirIngreso("Para enviar tu solicitud, ingresa con tu correo. Tus ventanas y tus datos quedan guardados.")
+                                return@Button
+                            }
                             accion("Enviando…") {
                                 val solicitud = ClienteApi.enviarSolicitud(
                                     NuevaSolicitud(
@@ -253,7 +285,8 @@ fun PantallaCarrito(emailCuenta: String, abrir: (Pantalla) -> Unit) {
                                     ),
                                 )
                                 enviada = solicitud.numero
-                                items = emptyList()
+                                CarritoLocal.borrador = null
+                                itemsCuenta = emptyList()
                             }
                         },
                         enabled = ocupado == null,
@@ -262,7 +295,7 @@ fun PantallaCarrito(emailCuenta: String, abrir: (Pantalla) -> Unit) {
                             .height(50.dp),
                     ) {
                         if (ocupado != null) CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
-                        else Text("Enviar solicitud")
+                        else Text(if (conCuenta) "Enviar solicitud" else "Ingresar y enviar solicitud")
                     }
                 }
             }

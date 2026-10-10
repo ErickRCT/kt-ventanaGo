@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -14,22 +16,38 @@ android {
         applicationId = "cl.ventanago.movil"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.5.0"
+        versionCode = 6
+        versionName = "0.6.0"
 
         // Mismo backend (Render) y misma carpeta de imágenes (front en Vercel) que la versión web.
         buildConfigField("String", "API_BASE_URL", "\"https://ventanago-api.onrender.com\"")
         buildConfigField("String", "IMAGEN_BASE_URL", "\"https://ventanago.vercel.app/\"")
     }
 
+    // Clave de firma propia del proyecto (carpeta firma/, fuera de git). Con ella el APK se actualiza encima del
+    // instalado aunque se compile en otro computador, y Google identifica la app (inicio de sesión con Google, Play).
+    val propiedadesFirma = rootProject.file("firma/keystore.properties")
+    val firma = Properties().apply { if (propiedadesFirma.exists()) propiedadesFirma.inputStream().use { load(it) } }
+    signingConfigs {
+        if (propiedadesFirma.exists()) {
+            create("release") {
+                storeFile = rootProject.file("firma/" + firma.getProperty("storeFile"))
+                storePassword = firma.getProperty("storePassword")
+                keyAlias = firma.getProperty("keyAlias")
+                keyPassword = firma.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Compose en modo debug es lento en teléfonos de gama de entrada: para probar se instala la versión
-            // release (optimizada con R8), firmada con la clave de depuración para poder instalarla directo.
+            // Compose en modo debug es lento en teléfonos de gama de entrada: para probar y compartir se usa la
+            // versión release (optimizada con R8).
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("debug")
+            // Sin la carpeta firma/ (p. ej. recién clonado) se firma con la clave de depuración, solo para probar.
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 

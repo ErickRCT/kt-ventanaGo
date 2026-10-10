@@ -44,7 +44,10 @@ enum class Pantalla(val titulo: String, val icono: ImageVector, val disponible: 
     SOLICITUDES("Solicitudes", Icons.Outlined.Inbox),
 }
 
-/** [roles]: roles del backend (ADMIN, CLIENTE, PROVEEDOR) que ven el grupo. */
+/** Quien usa la app sin haber entrado: puede diseñar, ver en su pared y armar el carrito. */
+const val INVITADO = "INVITADO"
+
+/** [roles]: roles del backend (ADMIN, CLIENTE, PROVEEDOR) o [INVITADO], que ven el grupo. */
 class GrupoMenu(val id: String, val titulo: String, val icono: ImageVector, val roles: Set<String>, val pantallas: List<Pantalla>)
 
 /** Mismos grupos que el menú lateral del front web, en el mismo orden: el administrador ve todos. */
@@ -57,7 +60,7 @@ val gruposMenu = listOf(
             Pantalla.QUINCALLERIA, Pantalla.VIDRIOS, Pantalla.COLORES, Pantalla.SERIES,
         ),
     ),
-    GrupoMenu("cliente", "Cliente", Icons.Outlined.Person, setOf("ADMIN", "CLIENTE"), listOf(Pantalla.DISENAR_VENTANA, Pantalla.CARRITO, Pantalla.MIS_COTIZACIONES)),
+    GrupoMenu("cliente", "Cliente", Icons.Outlined.Person, setOf("ADMIN", "CLIENTE", INVITADO), listOf(Pantalla.DISENAR_VENTANA, Pantalla.CARRITO, Pantalla.MIS_COTIZACIONES)),
     GrupoMenu("empresa", "Empresa", Icons.Outlined.Business, setOf("ADMIN", "PROVEEDOR"), listOf(Pantalla.SOLICITUDES)),
 )
 
@@ -65,7 +68,7 @@ fun gruposDe(rol: String) = gruposMenu.filter { rol in it.roles }
 
 /** Pantalla con la que parte cada rol (como RUTA_INICIAL de la web). */
 fun pantallaInicial(rol: String) = when (rol) {
-    "CLIENTE" -> Pantalla.DISENAR_VENTANA
+    "CLIENTE", INVITADO -> Pantalla.DISENAR_VENTANA
     "PROVEEDOR" -> Pantalla.SOLICITUDES
     else -> Pantalla.INICIO
 }
@@ -73,5 +76,6 @@ fun pantallaInicial(rol: String) = when (rol) {
 fun nombreRol(rol: String) = when (rol) {
     "ADMIN" -> "Administrador"
     "PROVEEDOR" -> "Empresa"
+    INVITADO -> "Sin cuenta"
     else -> "Cliente"
 }

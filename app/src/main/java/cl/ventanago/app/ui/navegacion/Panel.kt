@@ -84,6 +84,11 @@ import cl.ventanago.app.ui.modulos.PantallaVidrios
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.material3.Button
+import androidx.compose.material.icons.automirrored.outlined.Login
+import androidx.compose.material.icons.outlined.History
+import cl.ventanago.app.datos.CarritoLocal
+import cl.ventanago.app.ui.comun.EstadoMensaje
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -95,16 +100,39 @@ import cl.ventanago.app.ui.modulos.empresa.PantallaSolicitudesEmpresa
 import cl.ventanago.app.ui.modulos.cliente.PantallaDisenar
 import cl.ventanago.app.ui.modulos.cliente.PantallaMisCotizaciones
 
-/** Layout de la app con sesión: encabezado, menú lateral y el contenido de la pantalla elegida. */
+/**
+ * Layout de la app: encabezado, menú lateral y el contenido de la pantalla elegida. Sin [sesion] el cliente
+ * igual puede diseñar y armar su carrito; [alPedirIngreso] abre el login (con el motivo y la pantalla a la que
+ * volver después de entrar). [pantallaTrasIngreso]: dónde partir si se acaba de entrar desde ahí.
+ */
 @Composable
-fun Panel(sesion: Sesion, alCerrarSesion: () -> Unit) {
+fun Panel(
+    sesion: Sesion?,
+    alCerrarSesion: () -> Unit,
+    alPedirIngreso: (motivo: String?, volverA: Pantalla?) -> Unit,
+    pantallaTrasIngreso: Pantalla? = null,
+) {
     val alcance = rememberCoroutineScope()
     val cajon = rememberDrawerState(DrawerValue.Closed)
     val snackbar = remember { SnackbarHostState() }
-    val rol = sesion.cuenta.rol
+    val rol = sesion?.cuenta?.rol ?: INVITADO
     val inicial = pantallaInicial(rol)
-    var pantalla by rememberSaveable { mutableStateOf(inicial) }
-    val nombre = sesion.cuenta.nombre?.takeIf { it.isNotBlank() } ?: sesion.cuenta.email.substringBefore('@')
+    var pantalla by rememberSaveable { mutableStateOf(pantallaTrasIngreso?.takeIf { p -> gruposDe(rol).any { p in it.pantallas } } ?: inicial) }
+    val nombre = sesion?.let { it.cuenta.nombre?.takeIf { n -> n.isNotBlank() } ?: it.cuenta.email.substringBefore('@') } ?: "Invitado"
+    val email = sesion?.cuenta?.email.orEmpty()
+
+    // Lo que se armó sin cuenta pasa al carrito de la cuenta (clientes y administrador tienen carrito).
+    if (rol == "CLIENTE" || rol == "ADMIN") {
+        LaunchedEffect(Unit) {
+            if (CarritoLocal.items.isNotEmpty()) {
+                val pasadas = CarritoLocal.pasarACuenta()
+                if (pasadas > 0) {
+                    pantalla = Pantalla.CARRITO
+                    snackbar.showSnackbar("Tus $pasadas ${if (pasadas == 1) "ventana quedó guardada" else "ventanas quedaron guardadas"} en tu cuenta")
+                }
+            }
+        }
+    }
 
     val abrir: (Pantalla) -> Unit = {
         pantalla = it
@@ -122,9 +150,13 @@ fun Panel(sesion: Sesion, alCerrarSesion: () -> Unit) {
                     rol = rol,
                     actual = pantalla,
                     nombre = nombre,
-                    email = sesion.cuenta.email,
+                    email = email,
                     alElegir = abrir,
                     alCerrarSesion = alCerrarSesion,
+                    alIngresar = {
+                        alcance.launch { cajon.close() }
+                        alPedirIngreso(null, pantalla)
+                    },
                 )
             },
         ) {
@@ -133,7 +165,8 @@ fun Panel(sesion: Sesion, alCerrarSesion: () -> Unit) {
                     Encabezado(
                         rol = rol,
                         nombre = nombre,
-                        email = sesion.cuenta.email,
+                        email = email,
+                        alIngresar = { alPedirIngreso(null, pantalla) },
                         alAbrirMenu = { alcance.launch { cajon.open() } },
                         alAbrirSolicitudes = { pantalla = if (rol == "CLIENTE") Pantalla.MIS_COTIZACIONES else Pantalla.SOLICITUDES },
                         alCerrarSesion = alCerrarSesion,
@@ -161,9 +194,24 @@ fun Panel(sesion: Sesion, alCerrarSesion: () -> Unit) {
                             Pantalla.VIDRIOS -> PantallaVidrios()
                             Pantalla.COLORES -> PantallaColores()
                             Pantalla.SERIES -> PantallaSeries()
-                            Pantalla.DISENAR_VENTANA -> PantallaDisenar(abrir)
-                            Pantalla.CARRITO -> PantallaCarrito(sesion.cuenta.email, abrir)
-                            Pantalla.MIS_COTIZACIONES -> PantallaMisCotizaciones(abrir)
+                            Pantalla.DISENAR_VENTANA -> PantallaDisenar(abrir, conCuenta = sesion != null)
+                            Pantalla.CARRITO -> PantallaCarrito(
+                                emailCuenta = email,
+                                abrir = abrir,
+                                // Admin y clientes guardan el carrito en su cuenta; una empresa no tiene carrito.
+                                conCuenta = rol == "CLIENTE" || rol == "ADMIN",
+                                alPedirIngreso = { motivo -> alPedirIngreso(motivo, Pantalla.CARRITO) },
+                            )
+                            Pantalla.MIS_COTIZACIONES -> if (sesion == null) {
+                                EstadoMensaje(
+                                    Icons.Outlined.History,
+                                    "Ingresa para ver tus cotizaciones",
+                                    "Aquí verás las respuestas de la empresa a tus solicitudes.",
+                                    "Ingresar",
+                                ) { alPedirIngreso(null, Pantalla.MIS_COTIZACIONES) }
+                            } else {
+                                PantallaMisCotizaciones(abrir)
+                            }
                             Pantalla.SOLICITUDES -> PantallaSolicitudesEmpresa()
                             else -> PantallaProximamente(actual)
                         }
@@ -181,6 +229,7 @@ private fun Encabezado(
     rol: String,
     nombre: String,
     email: String,
+    alIngresar: () -> Unit,
     alAbrirMenu: () -> Unit,
     alAbrirSolicitudes: () -> Unit,
     alCerrarSesion: () -> Unit,
@@ -219,6 +268,14 @@ private fun Encabezado(
                 IconButton(onClick = alAbrirMenu) { Icon(Icons.Filled.Menu, contentDescription = "Abrir menú", tint = Colores.textoSecundario) }
             },
             actions = {
+                if (rol == INVITADO) {
+                    // Sin cuenta: en vez de avisos y menú de la cuenta, el botón para entrar.
+                    Button(onClick = alIngresar, modifier = Modifier.padding(end = 8.dp)) {
+                        Icon(Icons.AutoMirrored.Outlined.Login, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text(" Ingresar")
+                    }
+                    return@TopAppBar
+                }
                 Box {
                     IconButton(onClick = { avisosAbiertos = true }) {
                         BadgedBox(badge = { if (sinLeer > 0) Badge { Text("$sinLeer") } }) {
@@ -299,6 +356,7 @@ private fun MenuLateral(
     email: String,
     alElegir: (Pantalla) -> Unit,
     alCerrarSesion: () -> Unit,
+    alIngresar: () -> Unit,
 ) {
     // Al abrir, se despliega el grupo de la pantalla actual; después el usuario puede plegarlo o abrir otros.
     val abiertos = remember { mutableStateMapOf<String, Boolean>() }
@@ -351,7 +409,10 @@ private fun MenuLateral(
                     Spacer(Modifier.width(12.dp))
                     Column {
                         Text(nombre, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(email, color = Colores.menuTexto, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            if (rol == INVITADO) "Diseña sin cuenta; ingresa para pedir tu cotización." else email,
+                            color = Colores.menuTexto, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
             }
@@ -397,10 +458,10 @@ private fun MenuLateral(
             Spacer(Modifier.height(8.dp))
             HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(top = 8.dp))
             NavigationDrawerItem(
-                label = { Text("Cerrar sesión") },
-                icon = { Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = null) },
+                label = { Text(if (rol == INVITADO) "Ingresar o crear cuenta" else "Cerrar sesión") },
+                icon = { Icon(if (rol == INVITADO) Icons.AutoMirrored.Outlined.Login else Icons.AutoMirrored.Outlined.Logout, contentDescription = null) },
                 selected = false,
-                onClick = alCerrarSesion,
+                onClick = if (rol == INVITADO) alIngresar else alCerrarSesion,
                 colors = coloresItem,
                 modifier = Modifier.padding(12.dp),
             )

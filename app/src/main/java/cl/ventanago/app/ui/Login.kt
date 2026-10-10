@@ -1,6 +1,9 @@
 package cl.ventanago.app.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,6 +63,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cl.ventanago.app.R
 import cl.ventanago.app.datos.Autenticacion
+import cl.ventanago.app.datos.CarritoLocal
 import cl.ventanago.app.datos.ClienteApi
 import cl.ventanago.app.datos.Recursos
 import cl.ventanago.app.datos.Sesion
@@ -78,11 +82,12 @@ private val ROLES_APP = setOf("ADMIN", "CLIENTE", "PROVEEDOR")
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaLogin(autenticacion: Autenticacion) {
+fun PantallaLogin(autenticacion: Autenticacion, motivo: String? = null, alVolver: (() -> Unit)? = null) {
     val alcance = rememberCoroutineScope()
     val foco = LocalFocusManager.current
     var esCliente by rememberSaveable { mutableStateOf(true) }
-    var email by rememberSaveable { mutableStateOf("") }
+    // Si ya escribió su correo en el carrito (sin cuenta), se usa ese.
+    var email by rememberSaveable { mutableStateOf(CarritoLocal.borrador?.contacto?.email.orEmpty()) }
     var password by remember { mutableStateOf("") }
     var codigo by remember { mutableStateOf("") }
     var codigoEnviado by rememberSaveable { mutableStateOf(false) }
@@ -151,6 +156,8 @@ fun PantallaLogin(autenticacion: Autenticacion) {
         if (error == null) ejecutar { entrar(Recursos.login(email.trim(), password)) }
     }
 
+    alVolver?.let { BackHandler(enabled = !cargando, onBack = it) }
+
     Box(
         Modifier
             .fillMaxSize()
@@ -159,6 +166,11 @@ fun PantallaLogin(autenticacion: Autenticacion) {
             .imePadding(),
         contentAlignment = Alignment.Center,
     ) {
+        alVolver?.let {
+            IconButton(onClick = it, enabled = !cargando, modifier = Modifier.align(Alignment.TopStart).padding(4.dp)) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Colores.texto)
+            }
+        }
         Column(
             Modifier
                 .verticalScroll(rememberScrollState())
@@ -176,6 +188,12 @@ fun PantallaLogin(autenticacion: Autenticacion) {
             Spacer(Modifier.height(16.dp))
             Text("VentanaGo", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Colores.menuFondo)
             Text("Diseña, mira en tu pared y cotiza tus ventanas", color = Colores.gris, textAlign = TextAlign.Center)
+            motivo?.let {
+                Spacer(Modifier.height(16.dp))
+                Surface(color = Colores.azulClaro, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    Text(it, color = Colores.menuFondo, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(12.dp))
+                }
+            }
             Spacer(Modifier.height(24.dp))
 
             Card(
