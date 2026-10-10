@@ -28,7 +28,7 @@ enum class Pantalla(val titulo: String, val icono: ImageVector, val disponible: 
     CREAR_COTIZACION("Crear cotización", Icons.Outlined.AddBox, disponible = false),
     COTIZACIONES("Cotizaciones", Icons.AutoMirrored.Outlined.Assignment, disponible = false),
     CLIENTES("Clientes", Icons.Outlined.Group),
-    PAUTAS("Pautas", Icons.Outlined.ViewAgenda, disponible = false),
+    PAUTAS("Pautas", Icons.Outlined.ViewAgenda),
     TIPOS_PAUTA("Tipos de pauta", Icons.Outlined.Category),
     PERFILES("Perfiles", Icons.Outlined.CropFree),
     TIPOS_PERFIL("Tipos de perfil", Icons.Outlined.AccountTree),

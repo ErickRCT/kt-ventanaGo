@@ -45,7 +45,7 @@ import cl.ventanago.app.ui.comun.ejecutar
 import cl.ventanago.app.ui.comun.rememberEstadoGuardado
 
 @Composable
-private fun Etiqueta(texto: String, fondo: Color = Colores.azulClaro, color: Color = Colores.azul) {
+internal fun Etiqueta(texto: String, fondo: Color = Colores.azulClaro, color: Color = Colores.azul) {
     Surface(color = fondo, shape = RoundedCornerShape(6.dp)) {
         Text(
             texto,
@@ -59,7 +59,7 @@ private fun Etiqueta(texto: String, fondo: Color = Colores.azulClaro, color: Col
 
 /** Opciones de un selector cargadas desde el backend al abrir el formulario. */
 @Composable
-private fun <T> rememberOpciones(cargar: suspend () -> List<T>, alFallar: (String) -> Unit): List<T>? {
+internal fun <T> rememberOpciones(cargar: suspend () -> List<T>, alFallar: (String) -> Unit): List<T>? {
     var opciones by remember { mutableStateOf<List<T>?>(null) }
     LaunchedEffect(Unit) {
         opciones = try {

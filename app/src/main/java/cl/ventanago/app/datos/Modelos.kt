@@ -114,3 +114,64 @@ data class Sesion(
 
 @Serializable
 data class Credenciales(val email: String, val password: String)
+
+// Pautas: receta de fabricación de un producto (perfiles, quincallería y vidrios con sus descuentos en mm).
+
+@Serializable
+data class PautaPerfil(
+    val pautaPerfilId: Long? = null,
+    val pautaId: Long? = null,
+    val perfil: Perfil? = null,
+    val corte: String? = null,
+    /** "H" horizontal o "V" vertical. */
+    val orientacion: String = "H",
+    val cantidad: Long = 1,
+    /** Descuento en mm sobre la medida de la ventana (puede ser negativo). */
+    val variacion: Long = 0,
+    val dividir: Boolean = false,
+)
+
+@Serializable
+data class PautaQuincalleria(
+    val pautaQuincalleriaId: Long? = null,
+    val pautaId: Long? = null,
+    val quincalleria: Quincalleria? = null,
+    /** Piezas (unidad "Pz"). */
+    val cantidad: Int = 0,
+    /** Para unidad "Mt": mm que se suman al ancho y al alto. */
+    val variacionH: Int = 0,
+    val variacionV: Int = 0,
+)
+
+@Serializable
+data class PautaVidrio(
+    val pautaVidrioId: Long? = null,
+    val pautaId: Long? = null,
+    val cantidad: Long = 1,
+    val variacionH: Long = 0,
+    val variacionV: Long = 0,
+    val formula: String? = null,
+    val vidrio: Vidrio? = null,
+    val nombre: String? = null,
+    val valor: Long? = null,
+)
+
+@Serializable
+data class Pauta(
+    val pautaId: Long? = null,
+    val nombre: String = "",
+    val descripcion: String? = null,
+    val pesoTeoricoHorizontal: Double? = 0.0,
+    val pesoTeoricoVertical: Double? = 0.0,
+    val pesoTeoricoReforzadoHorizontal: Double? = 0.0,
+    val pesoTeoricoReforzadoVertical: Double? = 0.0,
+    /** Medidas (mm) desde las que la pauta usa perfiles reforzados. */
+    val verticalReforzada: Int = 0,
+    val horizontalReforzada: Int = 0,
+    val isReforzada: Boolean? = false,
+    val tipoPauta: TipoPauta? = null,
+    val vidrios: List<PautaVidrio>? = null,
+    val quincallerias: List<PautaQuincalleria>? = null,
+    val perfiles: List<PautaPerfil>? = null,
+    val serie: Serie? = null,
+)

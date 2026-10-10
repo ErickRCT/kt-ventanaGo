@@ -26,6 +26,10 @@ object Recursos {
     /** El backend solo permite listar y agregar tipos de pauta. */
     val tiposPauta = Recurso("/tipo-pauta", TipoPauta.serializer())
     val clientes = Recurso("/cliente", Cliente.serializer())
+    val pautas = Recurso("/pauta", Pauta.serializer())
+
+    suspend fun perfilesDeSerie(serieId: Long): List<Perfil> = Api.lista("/perfil/serie/$serieId", Perfil.serializer())
+    suspend fun quincalleriaDeSerie(serieId: Long): List<Quincalleria> = Api.lista("/quincalleria/serie/$serieId", Quincalleria.serializer())
 
     suspend fun regiones(): List<Region> = Api.lista("/region", Region.serializer())
     suspend fun comunas(regionId: Long): List<Comuna> = Api.lista("/comuna/region/$regionId", Comuna.serializer())

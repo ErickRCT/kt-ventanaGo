@@ -49,6 +49,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -246,13 +247,16 @@ fun FormularioPantalla(
             },
             containerColor = MaterialTheme.colorScheme.background,
         ) { padding ->
+            val desplazamiento = rememberScrollState()
+            // El error se muestra arriba: si aparece con el formulario desplazado, se sube para que se vea.
+            LaunchedEffect(error) { if (error != null) desplazamiento.animateScrollTo(0) }
             Column(
                 Modifier
                     .padding(padding)
                     .consumeWindowInsets(padding)
                     .imePadding()
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(desplazamiento)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {

@@ -46,6 +46,7 @@ import kotlinx.coroutines.coroutineScope
 /** Cantidad de registros de cada mantenedor, para el resumen de Inicio. */
 private val conteos: Map<Pantalla, suspend () -> Int> = mapOf(
     Pantalla.CLIENTES to { Recursos.clientes.listar().size },
+    Pantalla.PAUTAS to { Recursos.pautas.listar().size },
     Pantalla.SERIES to { Recursos.series.listar().size },
     Pantalla.PERFILES to { Recursos.perfiles.listar().size },
     Pantalla.TIPOS_PERFIL to { Recursos.tiposPerfil.listar().size },
@@ -143,7 +144,7 @@ fun PantallaInicio(nombre: String, abrir: (Pantalla) -> Unit) {
                 Icon(Icons.Outlined.Construction, contentDescription = null, tint = Color(0xFF8A5300))
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    "Crear cotización, Cotizaciones y Pautas se migran en la siguiente etapa; por ahora siguen en la versión web.",
+                    "Crear cotización y Cotizaciones se migran en la siguiente etapa; por ahora siguen en la versión web.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color(0xFF5C3A00),
                 )

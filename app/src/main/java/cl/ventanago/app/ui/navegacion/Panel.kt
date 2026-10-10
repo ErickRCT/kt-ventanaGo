@@ -72,6 +72,7 @@ import cl.ventanago.app.ui.comun.LocalAvisos
 import cl.ventanago.app.ui.modulos.PantallaClientes
 import cl.ventanago.app.ui.modulos.PantallaColores
 import cl.ventanago.app.ui.modulos.PantallaInicio
+import cl.ventanago.app.ui.modulos.PantallaPautas
 import cl.ventanago.app.ui.modulos.PantallaPerfiles
 import cl.ventanago.app.ui.modulos.PantallaProximamente
 import cl.ventanago.app.ui.modulos.PantallaQuincalleria
@@ -132,6 +133,7 @@ fun PanelAdministrador(sesion: Sesion, alCerrarSesion: () -> Unit) {
                         when (actual) {
                             Pantalla.INICIO -> PantallaInicio(nombre, abrir)
                             Pantalla.CLIENTES -> PantallaClientes()
+                            Pantalla.PAUTAS -> PantallaPautas()
                             Pantalla.TIPOS_PAUTA -> PantallaTiposPauta()
                             Pantalla.PERFILES -> PantallaPerfiles()
                             Pantalla.TIPOS_PERFIL -> PantallaTiposPerfil()
