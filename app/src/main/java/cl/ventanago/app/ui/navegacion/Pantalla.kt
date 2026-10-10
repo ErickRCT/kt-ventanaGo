@@ -38,24 +38,40 @@ enum class Pantalla(val titulo: String, val icono: ImageVector, val disponible: 
     SERIES("Series", Icons.AutoMirrored.Outlined.ViewList),
 
     // Vistas de cliente y empresa, que el administrador también ve en el front web.
-    DISENAR_VENTANA("Diseñar ventana", Icons.Outlined.ViewInAr, disponible = false),
-    CARRITO("Carrito", Icons.Outlined.ShoppingCart, disponible = false),
-    MIS_COTIZACIONES("Mis cotizaciones", Icons.Outlined.History, disponible = false),
+    DISENAR_VENTANA("Diseñar ventana", Icons.Outlined.ViewInAr),
+    CARRITO("Carrito", Icons.Outlined.ShoppingCart),
+    MIS_COTIZACIONES("Mis cotizaciones", Icons.Outlined.History),
     SOLICITUDES("Solicitudes", Icons.Outlined.Inbox, disponible = false),
 }
 
-class GrupoMenu(val id: String, val titulo: String, val icono: ImageVector, val pantallas: List<Pantalla>)
+/** [roles]: roles del backend (ADMIN, CLIENTE, PROVEEDOR) que ven el grupo. */
+class GrupoMenu(val id: String, val titulo: String, val icono: ImageVector, val roles: Set<String>, val pantallas: List<Pantalla>)
 
-/** Mismos grupos que el menú lateral del front web, en el mismo orden. */
+/** Mismos grupos que el menú lateral del front web, en el mismo orden: el administrador ve todos. */
 val gruposMenu = listOf(
     GrupoMenu(
-        "administrador", "Administrador", Icons.Outlined.AdminPanelSettings,
+        "administrador", "Administrador", Icons.Outlined.AdminPanelSettings, setOf("ADMIN"),
         listOf(
             Pantalla.INICIO, Pantalla.CREAR_COTIZACION, Pantalla.COTIZACIONES, Pantalla.CLIENTES,
             Pantalla.PAUTAS, Pantalla.TIPOS_PAUTA, Pantalla.PERFILES, Pantalla.TIPOS_PERFIL,
             Pantalla.QUINCALLERIA, Pantalla.VIDRIOS, Pantalla.COLORES, Pantalla.SERIES,
         ),
     ),
-    GrupoMenu("cliente", "Cliente", Icons.Outlined.Person, listOf(Pantalla.DISENAR_VENTANA, Pantalla.CARRITO, Pantalla.MIS_COTIZACIONES)),
-    GrupoMenu("empresa", "Empresa", Icons.Outlined.Business, listOf(Pantalla.SOLICITUDES)),
+    GrupoMenu("cliente", "Cliente", Icons.Outlined.Person, setOf("ADMIN", "CLIENTE"), listOf(Pantalla.DISENAR_VENTANA, Pantalla.CARRITO, Pantalla.MIS_COTIZACIONES)),
+    GrupoMenu("empresa", "Empresa", Icons.Outlined.Business, setOf("ADMIN", "PROVEEDOR"), listOf(Pantalla.SOLICITUDES)),
 )
+
+fun gruposDe(rol: String) = gruposMenu.filter { rol in it.roles }
+
+/** Pantalla con la que parte cada rol (como RUTA_INICIAL de la web). */
+fun pantallaInicial(rol: String) = when (rol) {
+    "CLIENTE" -> Pantalla.DISENAR_VENTANA
+    "PROVEEDOR" -> Pantalla.SOLICITUDES
+    else -> Pantalla.INICIO
+}
+
+fun nombreRol(rol: String) = when (rol) {
+    "ADMIN" -> "Administrador"
+    "PROVEEDOR" -> "Empresa"
+    else -> "Cliente"
+}

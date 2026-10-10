@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Cámara y RA opcionales: la app se instala en cualquier teléfono y, sin ellas, muestra el dibujo. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.ar" android:required="false" />
 
     <application
         android:allowBackup="false"
@@ -19,6 +24,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name="cl.ventanago.app.ar.RealidadAumentadaActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:theme="@style/Theme.VentanaGo.Camara" />
+
+        <!-- ARCore "optional": si el teléfono no lo tiene, la RA se reemplaza por la vista con cámara. -->
+        <meta-data android:name="com.google.ar.core" android:value="optional" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

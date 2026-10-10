@@ -7,3 +7,4 @@ local.properties
 captures/
 *.apk
 build.log
+build-debug.log

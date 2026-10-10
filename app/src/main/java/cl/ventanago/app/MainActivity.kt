@@ -11,7 +11,7 @@ import androidx.compose.runtime.remember
 import cl.ventanago.app.datos.Autenticacion
 import cl.ventanago.app.ui.PantallaLogin
 import cl.ventanago.app.ui.TemaVentanaGo
-import cl.ventanago.app.ui.navegacion.PanelAdministrador
+import cl.ventanago.app.ui.navegacion.Panel
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
                         delay((sesion.expiraEn - System.currentTimeMillis()).coerceAtLeast(0))
                         autenticacion.cerrar()
                     }
-                    PanelAdministrador(sesion, alCerrarSesion = autenticacion::cerrar)
+                    Panel(sesion, alCerrarSesion = autenticacion::cerrar)
                 }
             }
         }

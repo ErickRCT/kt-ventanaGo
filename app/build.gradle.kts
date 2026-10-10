@@ -14,8 +14,8 @@ android {
         applicationId = "cl.ventanago.movil"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
 
         // Mismo backend (Render) y misma carpeta de imágenes (front en Vercel) que la versión web.
         buildConfigField("String", "API_BASE_URL", "\"https://ventanago-api.onrender.com\"")
@@ -69,4 +69,10 @@ dependencies {
 
     implementation("io.coil-kt.coil3:coil-compose:3.2.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")
+
+    // Realidad aumentada (opcional en el teléfono) y cámara para la vista sin ARCore.
+    implementation("com.google.ar:core:1.56.0")
+    implementation("androidx.camera:camera-camera2:1.6.2")
+    implementation("androidx.camera:camera-lifecycle:1.6.2")
+    implementation("androidx.camera:camera-view:1.6.2")
 }

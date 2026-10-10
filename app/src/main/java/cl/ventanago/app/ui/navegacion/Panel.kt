@@ -81,15 +81,28 @@ import cl.ventanago.app.ui.modulos.PantallaSeries
 import cl.ventanago.app.ui.modulos.PantallaTiposPauta
 import cl.ventanago.app.ui.modulos.PantallaTiposPerfil
 import cl.ventanago.app.ui.modulos.PantallaVidrios
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.foundation.layout.widthIn
+import cl.ventanago.app.datos.Aviso
+import cl.ventanago.app.datos.ClienteApi
+import cl.ventanago.app.ui.modulos.cliente.PantallaCarrito
+import cl.ventanago.app.ui.modulos.cliente.PantallaDisenar
+import cl.ventanago.app.ui.modulos.cliente.PantallaMisCotizaciones
 
 /** Layout de la app con sesión: encabezado, menú lateral y el contenido de la pantalla elegida. */
 @Composable
-fun PanelAdministrador(sesion: Sesion, alCerrarSesion: () -> Unit) {
+fun Panel(sesion: Sesion, alCerrarSesion: () -> Unit) {
     val alcance = rememberCoroutineScope()
     val cajon = rememberDrawerState(DrawerValue.Closed)
     val snackbar = remember { SnackbarHostState() }
-    var pantalla by rememberSaveable { mutableStateOf(Pantalla.INICIO) }
+    val rol = sesion.cuenta.rol
+    val inicial = pantallaInicial(rol)
+    var pantalla by rememberSaveable { mutableStateOf(inicial) }
     val nombre = sesion.cuenta.nombre?.takeIf { it.isNotBlank() } ?: sesion.cuenta.email.substringBefore('@')
 
     val abrir: (Pantalla) -> Unit = {
@@ -98,13 +111,14 @@ fun PanelAdministrador(sesion: Sesion, alCerrarSesion: () -> Unit) {
     }
 
     BackHandler(enabled = cajon.isOpen) { alcance.launch { cajon.close() } }
-    BackHandler(enabled = cajon.isClosed && pantalla != Pantalla.INICIO) { pantalla = Pantalla.INICIO }
+    BackHandler(enabled = cajon.isClosed && pantalla != inicial) { pantalla = inicial }
 
     CompositionLocalProvider(LocalAvisos provides { mensaje -> alcance.launch { snackbar.showSnackbar(mensaje) } }) {
         ModalNavigationDrawer(
             drawerState = cajon,
             drawerContent = {
                 MenuLateral(
+                    rol = rol,
                     actual = pantalla,
                     nombre = nombre,
                     email = sesion.cuenta.email,
@@ -116,9 +130,11 @@ fun PanelAdministrador(sesion: Sesion, alCerrarSesion: () -> Unit) {
             Scaffold(
                 topBar = {
                     Encabezado(
+                        rol = rol,
                         nombre = nombre,
                         email = sesion.cuenta.email,
                         alAbrirMenu = { alcance.launch { cajon.open() } },
+                        alAbrirSolicitudes = { pantalla = Pantalla.MIS_COTIZACIONES },
                         alCerrarSesion = alCerrarSesion,
                     )
                 },
@@ -144,6 +160,9 @@ fun PanelAdministrador(sesion: Sesion, alCerrarSesion: () -> Unit) {
                             Pantalla.VIDRIOS -> PantallaVidrios()
                             Pantalla.COLORES -> PantallaColores()
                             Pantalla.SERIES -> PantallaSeries()
+                            Pantalla.DISENAR_VENTANA -> PantallaDisenar(abrir)
+                            Pantalla.CARRITO -> PantallaCarrito(sesion.cuenta.email, abrir)
+                            Pantalla.MIS_COTIZACIONES -> PantallaMisCotizaciones(abrir)
                             else -> PantallaProximamente(actual)
                         }
                     }
@@ -156,9 +175,41 @@ fun PanelAdministrador(sesion: Sesion, alCerrarSesion: () -> Unit) {
 /** Equivale a components/Encabezado: botón de menú, marca, notificaciones y menú de la cuenta. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Encabezado(nombre: String, email: String, alAbrirMenu: () -> Unit, alCerrarSesion: () -> Unit) {
+private fun Encabezado(
+    rol: String,
+    nombre: String,
+    email: String,
+    alAbrirMenu: () -> Unit,
+    alAbrirSolicitudes: () -> Unit,
+    alCerrarSesion: () -> Unit,
+) {
     var avisosAbiertos by remember { mutableStateOf(false) }
     var cuentaAbierta by remember { mutableStateOf(false) }
+    val alcance = rememberCoroutineScope()
+    // Los avisos son del cliente (respuestas de la empresa); se revisan cada minuto, como la web cada 30 s.
+    var avisos by remember { mutableStateOf<List<Aviso>>(emptyList()) }
+    if (rol == "CLIENTE") {
+        LaunchedEffect(Unit) {
+            while (true) {
+                try {
+                    avisos = ClienteApi.avisos().sortedByDescending { it.fecha }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    // Sin conexión: se reintenta en el próximo ciclo.
+                }
+                delay(60_000)
+            }
+        }
+    }
+    val sinLeer = avisos.count { !it.leido }
+    fun cerrarAvisos() {
+        avisosAbiertos = false
+        if (sinLeer > 0) {
+            avisos = avisos.map { it.copy(leido = true) }
+            alcance.launch { runCatching { ClienteApi.marcarAvisosLeidos() } }
+        }
+    }
     Column {
         TopAppBar(
             title = { Text("VentanaGo", fontWeight = FontWeight.Bold, color = Colores.menuFondo) },
@@ -168,11 +219,29 @@ private fun Encabezado(nombre: String, email: String, alAbrirMenu: () -> Unit, a
             actions = {
                 Box {
                     IconButton(onClick = { avisosAbiertos = true }) {
-                        Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones", tint = Colores.textoSecundario)
+                        BadgedBox(badge = { if (sinLeer > 0) Badge { Text("$sinLeer") } }) {
+                            Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones", tint = Colores.textoSecundario)
+                        }
                     }
                     // El administrador no recibe avisos (en el front web son de clientes y empresas).
-                    DropdownMenu(expanded = avisosAbiertos, onDismissRequest = { avisosAbiertos = false }) {
-                        DropdownMenuItem(text = { Text("Sin notificaciones") }, onClick = { avisosAbiertos = false }, enabled = false)
+                    DropdownMenu(expanded = avisosAbiertos, onDismissRequest = { cerrarAvisos() }, modifier = Modifier.widthIn(max = 320.dp)) {
+                        if (avisos.isEmpty()) {
+                            DropdownMenuItem(text = { Text("Sin notificaciones") }, onClick = { avisosAbiertos = false }, enabled = false)
+                        }
+                        avisos.take(15).forEach { aviso ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(aviso.titulo, fontWeight = if (aviso.leido) FontWeight.Normal else FontWeight.Bold)
+                                        Text(aviso.mensaje, style = MaterialTheme.typography.bodySmall, color = Colores.gris)
+                                    }
+                                },
+                                onClick = {
+                                    cerrarAvisos()
+                                    alAbrirSolicitudes()
+                                },
+                            )
+                        }
                     }
                 }
                 Box(Modifier.padding(end = 8.dp)) {
@@ -181,7 +250,7 @@ private fun Encabezado(nombre: String, email: String, alAbrirMenu: () -> Unit, a
                         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                             Text(nombre, fontWeight = FontWeight.Bold)
                             Text(email, style = MaterialTheme.typography.bodySmall, color = Colores.gris)
-                            Text("Administrador", style = MaterialTheme.typography.labelSmall, color = Colores.azul)
+                            Text(nombreRol(rol), style = MaterialTheme.typography.labelSmall, color = Colores.azul)
                         }
                         HorizontalDivider()
                         DropdownMenuItem(
@@ -222,6 +291,7 @@ private fun Avatar(nombre: String, modifier: Modifier = Modifier, tamano: Int = 
 /** Equivale a components/MenuLateral: grupos plegables por rol, con la pantalla actual destacada. */
 @Composable
 private fun MenuLateral(
+    rol: String,
     actual: Pantalla,
     nombre: String,
     email: String,
@@ -230,7 +300,8 @@ private fun MenuLateral(
 ) {
     // Al abrir, se despliega el grupo de la pantalla actual; después el usuario puede plegarlo o abrir otros.
     val abiertos = remember { mutableStateMapOf<String, Boolean>() }
-    val grupoActual = gruposMenu.first { actual in it.pantallas }.id
+    val grupos = gruposDe(rol)
+    val grupoActual = grupos.firstOrNull { actual in it.pantallas }?.id
     val coloresItem = NavigationDrawerItemDefaults.colors(
         selectedContainerColor = Color.White.copy(alpha = 0.10f),
         unselectedContainerColor = Color.Transparent,
@@ -263,7 +334,7 @@ private fun MenuLateral(
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text("VentanaGo", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
-                    Text("Panel de administración", color = Colores.menuTexto, style = MaterialTheme.typography.bodySmall)
+                    Text(if (rol == "ADMIN") "Panel de administración" else "Diseña y cotiza tus ventanas", color = Colores.menuTexto, style = MaterialTheme.typography.bodySmall)
                 }
             }
             Surface(
@@ -284,7 +355,7 @@ private fun MenuLateral(
             }
             Spacer(Modifier.height(12.dp))
 
-            gruposMenu.forEach { grupo ->
+            grupos.forEach { grupo ->
                 val expandido = abiertos[grupo.id] ?: (grupo.id == grupoActual)
                 val activo = grupo.id == grupoActual
                 Row(

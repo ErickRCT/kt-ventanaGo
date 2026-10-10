@@ -53,3 +53,9 @@ object Cotizaciones {
 
     suspend fun pautasDeSerie(serieId: Long): List<Pauta> = Api.lista("/pauta/serie/$serieId", Pauta.serializer())
 }
+
+/**
+ * Ganancia con la que se muestra al cliente un precio referencial mientras diseña (la misma con la que parte
+ * una cotización nueva). El precio final lo confirma la empresa al responder la solicitud.
+ */
+const val GANANCIA_REFERENCIAL = 50

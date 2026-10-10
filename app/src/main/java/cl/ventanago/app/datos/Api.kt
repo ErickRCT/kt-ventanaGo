@@ -56,6 +56,10 @@ object Api {
     suspend fun <B> enviar(metodo: String, ruta: String, cuerpo: B, escritor: SerializationStrategy<B>): String =
         ejecutar(metodo, ruta, json.encodeToString(escritor, cuerpo))
 
+    /** Petición sin cuerpo que devuelve texto (DELETE con respuesta, POST sin datos). */
+    suspend fun texto(metodo: String, ruta: String): String =
+        ejecutar(metodo, ruta, if (metodo == "POST" || metodo == "PUT") "" else null)
+
     suspend fun eliminar(ruta: String) {
         ejecutar("DELETE", ruta, null)
     }

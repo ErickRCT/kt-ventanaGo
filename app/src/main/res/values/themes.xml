@@ -4,4 +4,9 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
+
+    <!-- Realidad aumentada: fondo negro mientras abre la cámara. -->
+    <style name="Theme.VentanaGo.Camara" parent="Theme.VentanaGo">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
 </resources>

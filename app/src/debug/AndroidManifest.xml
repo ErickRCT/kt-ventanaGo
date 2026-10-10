@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solo en la versión de depuración: permite abrir la realidad aumentada desde adb para probarla sin iniciar sesión. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application>
+        <activity
+            android:name="cl.ventanago.app.ar.RealidadAumentadaActivity"
+            android:exported="true"
+            tools:replace="android:exported" />
+    </application>
+</manifest>

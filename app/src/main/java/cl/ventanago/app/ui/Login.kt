@@ -21,17 +21,23 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Pin
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,24 +60,37 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cl.ventanago.app.R
 import cl.ventanago.app.datos.Autenticacion
+import cl.ventanago.app.datos.ClienteApi
 import cl.ventanago.app.datos.Recursos
+import cl.ventanago.app.datos.Sesion
 import cl.ventanago.app.datos.emailValido
 import cl.ventanago.app.datos.mensaje
 import cl.ventanago.app.ui.comun.MensajeError
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** Ingreso con correo y contraseña (/auth/login). Por ahora la app es solo para el administrador. */
+/** Roles que ya tienen pantallas en la app. */
+private val ROLES_APP = setOf("ADMIN", "CLIENTE")
+
+/**
+ * Ingreso: los clientes con un código que llega a su correo (sin contraseña) y el administrador con
+ * contraseña, igual que en la web.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaLogin(autenticacion: Autenticacion) {
     val alcance = rememberCoroutineScope()
     val foco = LocalFocusManager.current
+    var esCliente by rememberSaveable { mutableStateOf(true) }
     var email by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var codigo by remember { mutableStateOf("") }
+    var codigoEnviado by rememberSaveable { mutableStateOf(false) }
     var verPassword by remember { mutableStateOf(false) }
     var cargando by remember { mutableStateOf(false) }
     var lento by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(autenticacion.aviso) }
+    var info by remember { mutableStateOf<String?>(null) }
 
     // Si el servidor de Render estaba dormido, se avisa que la primera respuesta tarda.
     LaunchedEffect(cargando) {
@@ -82,28 +101,54 @@ fun PantallaLogin(autenticacion: Autenticacion) {
         }
     }
 
-    fun ingresar() {
+    fun entrar(sesion: Sesion) {
+        if (sesion.cuenta.rol in ROLES_APP) autenticacion.iniciar(sesion)
+        else error = "El panel de empresas y proveedores todavía no está en la app. Por ahora úsalo desde la versión web."
+    }
+
+    fun ejecutar(accion: suspend () -> Unit) {
         foco.clearFocus()
-        error = when {
-            !emailValido(email) -> "Ingresa un correo válido."
-            password.isEmpty() -> "Ingresa tu contraseña."
-            else -> null
-        }
-        if (error != null || cargando) return
+        if (cargando) return
         alcance.launch {
             cargando = true
+            error = null
             try {
-                val sesion = Recursos.login(email.trim(), password)
-                if (sesion.cuenta.rol == "ADMIN") {
-                    autenticacion.iniciar(sesion)
-                } else {
-                    error = "Esta versión de la app es solo para el administrador. Pronto se habilitará para clientes y empresas."
-                }
+                accion()
             } catch (e: Exception) {
                 error = e.mensaje()
             }
             cargando = false
         }
+    }
+
+    fun enviarCodigo() {
+        if (!emailValido(email)) {
+            error = "Ingresa un correo válido."
+            return
+        }
+        ejecutar {
+            ClienteApi.solicitarCodigo(email.trim())
+            codigoEnviado = true
+            codigo = ""
+            info = "Te enviamos un código de 6 dígitos a ${email.trim()}. Revisa también la carpeta de spam."
+        }
+    }
+
+    fun verificar() {
+        if (codigo.length != 6) {
+            error = "El código tiene 6 dígitos."
+            return
+        }
+        ejecutar { entrar(ClienteApi.verificarCodigo(email.trim(), codigo)) }
+    }
+
+    fun ingresarAdmin() {
+        error = when {
+            !emailValido(email) -> "Ingresa un correo válido."
+            password.isEmpty() -> "Ingresa tu contraseña."
+            else -> null
+        }
+        if (error == null) ejecutar { entrar(Recursos.login(email.trim(), password)) }
     }
 
     Box(
@@ -130,8 +175,8 @@ fun PantallaLogin(autenticacion: Autenticacion) {
             }
             Spacer(Modifier.height(16.dp))
             Text("VentanaGo", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Colores.menuFondo)
-            Text("Panel de administración", color = Colores.gris)
-            Spacer(Modifier.height(28.dp))
+            Text("Diseña, mira en tu pared y cotiza tus ventanas", color = Colores.gris, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(24.dp))
 
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -140,48 +185,92 @@ fun PantallaLogin(autenticacion: Autenticacion) {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text("Iniciar sesión", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                        listOf(true to "Soy cliente", false to "Administrador").forEachIndexed { i, (cliente, texto) ->
+                            SegmentedButton(
+                                selected = esCliente == cliente,
+                                onClick = {
+                                    esCliente = cliente
+                                    error = null
+                                    info = null
+                                },
+                                shape = SegmentedButtonDefaults.itemShape(i, 2),
+                                enabled = !cargando,
+                            ) { Text(texto) }
+                        }
+                    }
                     error?.let { MensajeError(it) }
+                    info?.takeIf { esCliente && codigoEnviado }?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = Colores.textoSecundario)
+                    }
+
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { email = it.trim() },
+                        onValueChange = {
+                            email = it.trim()
+                            if (codigoEnviado) codigoEnviado = false
+                        },
                         label = { Text("Correo") },
                         leadingIcon = { Icon(Icons.Outlined.Email, contentDescription = null) },
                         singleLine = true,
                         enabled = !cargando,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = if (esCliente) ImeAction.Send else ImeAction.Next),
+                        keyboardActions = KeyboardActions(onSend = { enviarCodigo() }),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text("Contraseña") },
-                        leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = null) },
-                        trailingIcon = {
-                            IconButton(onClick = { verPassword = !verPassword }) {
-                                Icon(
-                                    if (verPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                                    contentDescription = if (verPassword) "Ocultar contraseña" else "Mostrar contraseña",
-                                )
+
+                    if (esCliente) {
+                        if (codigoEnviado) {
+                            OutlinedTextField(
+                                value = codigo,
+                                onValueChange = { codigo = it.filter(Char::isDigit).take(6) },
+                                label = { Text("Código de 6 dígitos") },
+                                leadingIcon = { Icon(Icons.Outlined.Pin, contentDescription = null) },
+                                singleLine = true,
+                                enabled = !cargando,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions(onDone = { verificar() }),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                        Boton(if (codigoEnviado) "Ingresar" else "Recibir código por correo", cargando) {
+                            if (codigoEnviado) verificar() else enviarCodigo()
+                        }
+                        if (codigoEnviado) {
+                            TextButton(onClick = { enviarCodigo() }, enabled = !cargando, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                                Text("Reenviar código")
                             }
-                        },
-                        visualTransformation = if (verPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        singleLine = true,
-                        enabled = !cargando,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { ingresar() }),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Button(
-                        onClick = { ingresar() },
-                        enabled = !cargando,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                    ) {
-                        if (cargando) CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
-                        else Text("Ingresar")
+                        } else {
+                            Text(
+                                "Sin contraseña: te enviamos un código cada vez que entras. Si es tu primera vez, se crea tu cuenta.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Colores.gris,
+                            )
+                        }
+                    } else {
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text("Contraseña") },
+                            leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = null) },
+                            trailingIcon = {
+                                IconButton(onClick = { verPassword = !verPassword }) {
+                                    Icon(
+                                        if (verPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                        contentDescription = if (verPassword) "Ocultar contraseña" else "Mostrar contraseña",
+                                    )
+                                }
+                            },
+                            visualTransformation = if (verPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            singleLine = true,
+                            enabled = !cargando,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(onDone = { ingresarAdmin() }),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Boton("Ingresar", cargando) { ingresarAdmin() }
                     }
+
                     if (lento) {
                         Text(
                             "Despertando el servidor… la primera conexión del día puede tardar hasta un minuto.",
@@ -194,5 +283,19 @@ fun PantallaLogin(autenticacion: Autenticacion) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun Boton(texto: String, cargando: Boolean, alPulsar: () -> Unit) {
+    Button(
+        onClick = alPulsar,
+        enabled = !cargando,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp),
+    ) {
+        if (cargando) CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
+        else Text(texto)
     }
 }
