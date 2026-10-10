@@ -16,11 +16,18 @@ android {
         applicationId = "cl.ventanago.movil"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
-        versionName = "0.6.0"
+        versionCode = 7
+        versionName = "0.7.0"
 
         // Mismo backend (Render) y misma carpeta de imágenes (front en Vercel) que la versión web.
-        buildConfigField("String", "API_BASE_URL", "\"https://ventanago-api.onrender.com\"")
+        // Para probar contra un backend local: ./gradlew assembleRelease -Pventanago.apiUrl=http://192.168.1.10:7099
+        val apiUrl = (project.findProperty("ventanago.apiUrl") as String?) ?: "https://ventanago-api.onrender.com"
+        buildConfigField("String", "API_BASE_URL", "\"$apiUrl\"")
+        // HTTP sin cifrar solo cuando se apunta a un backend local.
+        manifestPlaceholders["permitirHttp"] = apiUrl.startsWith("http://").toString()
+        // Client ID web de Google (el mismo app.google.client-id del backend). Vacío: no se muestra "Continuar con Google".
+        val googleClientId = (project.findProperty("ventanago.googleClientId") as String?).orEmpty().trim()
+        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
         buildConfigField("String", "IMAGEN_BASE_URL", "\"https://ventanago.vercel.app/\"")
     }
 
@@ -84,6 +91,11 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+
+    // "Continuar con Google" (Credential Manager).
+    implementation("androidx.credentials:credentials:1.5.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
     implementation("io.coil-kt.coil3:coil-compose:3.2.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")

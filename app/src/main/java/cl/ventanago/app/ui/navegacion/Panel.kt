@@ -97,6 +97,8 @@ import cl.ventanago.app.datos.Aviso
 import cl.ventanago.app.datos.ClienteApi
 import cl.ventanago.app.ui.modulos.cliente.PantallaCarrito
 import cl.ventanago.app.ui.modulos.empresa.PantallaSolicitudesEmpresa
+import cl.ventanago.app.ui.modulos.mercado.PantallaMiPerfil
+import cl.ventanago.app.ui.modulos.mercado.PantallaProveedores
 import cl.ventanago.app.ui.modulos.cliente.PantallaDisenar
 import cl.ventanago.app.ui.modulos.cliente.PantallaMisCotizaciones
 
@@ -206,13 +208,15 @@ fun Panel(
                                 EstadoMensaje(
                                     Icons.Outlined.History,
                                     "Ingresa para ver tus cotizaciones",
-                                    "Aquí verás las respuestas de la empresa a tus solicitudes.",
+                                    "Aquí verás las ofertas de los proveedores a tus solicitudes.",
                                     "Ingresar",
                                 ) { alPedirIngreso(null, Pantalla.MIS_COTIZACIONES) }
                             } else {
                                 PantallaMisCotizaciones(abrir)
                             }
-                            Pantalla.SOLICITUDES -> PantallaSolicitudesEmpresa()
+                            Pantalla.PROVEEDORES -> PantallaProveedores(esAdmin = rol == "ADMIN")
+                            Pantalla.SOLICITUDES -> PantallaSolicitudesEmpresa(esAdmin = rol == "ADMIN")
+                            Pantalla.MI_PERFIL -> PantallaMiPerfil()
                             else -> PantallaProximamente(actual)
                         }
                     }

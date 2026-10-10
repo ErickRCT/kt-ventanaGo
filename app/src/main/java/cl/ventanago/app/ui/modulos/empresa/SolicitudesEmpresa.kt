@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import cl.ventanago.app.datos.EmpresaApi
 import cl.ventanago.app.datos.Solicitud
 import cl.ventanago.app.datos.mensaje
-import cl.ventanago.app.datos.nombreEstadoSolicitud
 import cl.ventanago.app.datos.nombreServicio
 import cl.ventanago.app.datos.pesos
 import cl.ventanago.app.ui.Colores
@@ -48,36 +47,56 @@ import cl.ventanago.app.ui.comun.EstadoMensaje
 import cl.ventanago.app.ui.comun.LocalAvisos
 import cl.ventanago.app.ui.modulos.Etiqueta
 import cl.ventanago.app.ui.modulos.cotizaciones.fechaLegible
+import cl.ventanago.app.ui.modulos.mercado.EtiquetaEstadoSolicitud
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 
-private val FILTROS = listOf("PENDIENTE", "TODAS", "ACEPTADA", "MODIFICADA", "RECHAZADA")
-
-@Composable
-fun EtiquetaEstadoSolicitud(estado: String) = when (estado) {
-    "ACEPTADA" -> Etiqueta("Aceptada", Color(0xFFE8F5E9), Colores.exito)
-    "MODIFICADA" -> Etiqueta("Modificada", Colores.azulClaro, Colores.azul)
-    "RECHAZADA" -> Etiqueta("Rechazada", Color(0xFFFDECEA), Colores.error)
-    else -> Etiqueta(nombreEstadoSolicitud(estado), Color(0xFFFFF4E5), Color(0xFF8A5300))
+/** En qué está cada solicitud desde el punto de vista del proveedor. */
+private enum class Bandeja(val titulo: String) {
+    POR_OFERTAR("Por ofertar"),
+    OFERTADAS("Ofertadas"),
+    GANADAS("Ganadas"),
+    CERRADAS("Cerradas"),
+    TODAS("Todas"),
 }
 
-/** Total de lo que la empresa cotizó, o null si falta algún precio. */
-fun totalSolicitud(s: Solicitud): Long? =
-    if (s.items.any { it.precioUnitario == null }) null else s.items.sumOf { (it.precioUnitario ?: 0) * it.cantidad }
+private fun bandeja(s: Solicitud): Bandeja {
+    val mia = s.miOferta
+    return when {
+        mia == null -> if (s.estado == "PENDIENTE") Bandeja.POR_OFERTAR else Bandeja.CERRADAS
+        mia.estado == "ELEGIDA" -> Bandeja.GANADAS
+        mia.estado == "VIGENTE" && mia.tipo != "RECHAZADA" && s.estado == "PENDIENTE" -> Bandeja.OFERTADAS
+        else -> Bandeja.CERRADAS
+    }
+}
+
+/** Para el administrador, que no oferta: las bandejas son los estados de la solicitud. */
+private val ESTADOS_ADMIN = listOf("PENDIENTE", "ADJUDICADA", "TERMINADA", "CANCELADA", "TODAS")
+
+@Composable
+fun EtiquetaOferta(s: Solicitud) {
+    val mia = s.miOferta ?: return EtiquetaEstadoSolicitud(s.estado)
+    when {
+        mia.estado == "ELEGIDA" -> Etiqueta(if (s.estado == "TERMINADA") "Terminada" else "¡Ganada!", Color(0xFFE8F5E9), Colores.exito)
+        mia.tipo == "RECHAZADA" -> Etiqueta("No tomada", Color(0xFFEDEFF2), Colores.gris)
+        mia.estado == "DESCARTADA" -> Etiqueta(if (s.estado == "CANCELADA") "Cancelada" else "Otro proveedor", Color(0xFFEDEFF2), Colores.gris)
+        else -> Etiqueta("Oferta enviada", Colores.azulClaro, Colores.azul)
+    }
+}
 
 /**
- * Solicitudes de cotización de los clientes (equivale a SolicitudesEmpresa de la web): filtradas por estado,
- * y al tocar una se abre para aceptarla con precio, modificarla o rechazarla.
+ * Solicitudes que le llegan al proveedor (de su zona y servicios, o a las que lo invitaron) agrupadas por lo que
+ * falta hacer; al tocar una se abre para enviar la oferta o seguir la conversación.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaSolicitudesEmpresa() {
+fun PantallaSolicitudesEmpresa(esAdmin: Boolean = false) {
     val avisar = LocalAvisos.current
     var solicitudes by remember { mutableStateOf<List<Solicitud>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var recarga by remember { mutableIntStateOf(0) }
     var refrescando by remember { mutableStateOf(false) }
-    var filtro by rememberSaveable { mutableStateOf("PENDIENTE") }
+    var filtro by rememberSaveable { mutableStateOf(if (esAdmin) "PENDIENTE" else Bandeja.POR_OFERTAR.name) }
     var abierta by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(recarga) {
@@ -96,28 +115,37 @@ fun PantallaSolicitudesEmpresa() {
         }
     }
 
+    fun coincide(s: Solicitud, f: String) =
+        if (esAdmin) f == "TODAS" || s.estado == f else f == Bandeja.TODAS.name || bandeja(s).name == f
+    val filtros: List<Pair<String, String>> =
+        if (esAdmin) ESTADOS_ADMIN.map { it to if (it == "TODAS") "Todas" else cl.ventanago.app.datos.nombreEstadoSolicitud(it) }
+        else Bandeja.entries.map { it.name to it.titulo }
+
     val lista = solicitudes
     when {
         lista == null && error != null -> EstadoError(error!!) { error = null; recarga++ }
         lista == null -> EstadoCargando("Cargando solicitudes…")
         else -> PullToRefreshBox(isRefreshing = refrescando, onRefresh = { refrescando = true; recarga++ }, modifier = Modifier.fillMaxSize()) {
-            val visibles = lista.filter { filtro == "TODAS" || it.estado == filtro }
+            val visibles = lista.filter { coincide(it, filtro) }
             LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
                 item {
                     Text("Solicitudes", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Text("Pedidos de cotización de los clientes. Responde con precio, propón cambios o recházalos.", color = Colores.gris)
+                    Text(
+                        if (esAdmin) "Todas las solicitudes del mercado y sus ofertas."
+                        else "Pedidos de clientes de tu zona. Envía tu oferta: el cliente compara y elige.",
+                        color = Colores.gris,
+                    )
                     Row(
                         Modifier
                             .horizontalScroll(rememberScrollState())
                             .padding(top = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        FILTROS.forEach { f ->
-                            val cantidad = lista.count { f == "TODAS" || it.estado == f }
+                        filtros.forEach { (f, titulo) ->
                             FilterChip(
                                 selected = filtro == f,
                                 onClick = { filtro = f },
-                                label = { Text("${if (f == "TODAS") "Todas" else nombreEstadoSolicitud(f)} ($cantidad)") },
+                                label = { Text("$titulo (${lista.count { coincide(it, f) }})") },
                             )
                         }
                     }
@@ -126,16 +154,17 @@ fun PantallaSolicitudesEmpresa() {
                     item {
                         EstadoMensaje(
                             Icons.Outlined.Inbox,
-                            if (lista.isEmpty()) "Aún no llegan solicitudes" else "No hay solicitudes en este estado",
-                            if (lista.isEmpty()) "Cuando un cliente envíe su carrito, aparecerá aquí." else null,
+                            if (lista.isEmpty()) "Aún no llegan solicitudes" else "No hay solicitudes aquí",
+                            if (lista.isEmpty()) "Cuando un cliente de tu zona pida cotización, aparecerá aquí. Revisa que tu perfil tenga tus comunas y servicios." else null,
                         )
                     }
                 }
                 items(visibles, key = { it.numero }) { s ->
+                    val porOfertar = !esAdmin && bandeja(s) == Bandeja.POR_OFERTAR
                     Card(
                         onClick = { abierta = s.numero },
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        border = BorderStroke(1.dp, if (s.estado == "PENDIENTE") Color(0xFFF2C46D) else Colores.borde),
+                        border = BorderStroke(1.dp, if (porOfertar) Color(0xFFF2C46D) else Colores.borde),
                         shape = RoundedCornerShape(12.dp),
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -148,26 +177,34 @@ fun PantallaSolicitudesEmpresa() {
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f),
                                 )
-                                EtiquetaEstadoSolicitud(s.estado)
+                                if (esAdmin) EtiquetaEstadoSolicitud(s.estado) else EtiquetaOferta(s)
                             }
                             Text(
-                                listOf(fechaLegible(s.fecha?.take(10)), s.servicios.joinToString(", ") { nombreServicio(it) })
+                                listOfNotNull(fechaLegible(s.fecha?.take(10)), s.comuna?.nombre, s.servicios.joinToString(", ") { nombreServicio(it) })
                                     .filter { it.isNotBlank() }.joinToString(" · "),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Colores.gris,
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    "${s.items.sumOf { it.cantidad }} ventanas · ${s.items.size} tipos",
+                                    if (s.items.isEmpty()) (s.observaciones ?: "Servicio sin ventanas")
+                                    else "${s.items.sumOf { it.cantidad }} ventanas · ${s.items.size} tipos" +
+                                        (if (s.cantidadOfertas > 0) " · ${s.cantidadOfertas} oferta(s)" else ""),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Colores.textoSecundario,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f),
                                 )
-                                val total = totalSolicitud(s)
+                                val total = s.miOferta?.total
                                 Text(
-                                    if (total == null || s.estado == "RECHAZADA") (if (s.estado == "PENDIENTE") "Responder ›" else "—") else pesos(total),
+                                    when {
+                                        porOfertar -> "Ofertar ›"
+                                        total != null -> pesos(total)
+                                        else -> "Ver ›"
+                                    },
                                     fontWeight = FontWeight.Bold,
-                                    color = if (s.estado == "PENDIENTE") Color(0xFF8A5300) else Colores.menuFondo,
+                                    color = if (porOfertar) Color(0xFF8A5300) else Colores.menuFondo,
                                 )
                             }
                         }
@@ -178,11 +215,11 @@ fun PantallaSolicitudesEmpresa() {
     }
 
     lista?.firstOrNull { it.numero == abierta }?.let { s ->
-        DetalleSolicitudEmpresa(s) { actualizada ->
+        DetalleSolicitudEmpresa(s, esAdmin) { actualizada ->
             abierta = null
             if (actualizada != null) {
                 solicitudes = solicitudes?.map { if (it.numero == actualizada.numero) actualizada else it }
-                avisar("Solicitud N° ${actualizada.numero} ${nombreEstadoSolicitud(actualizada.estado).lowercase()}")
+                avisar("Oferta enviada para la solicitud N° ${actualizada.numero}")
             }
         }
     }

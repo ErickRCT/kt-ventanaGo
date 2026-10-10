@@ -16,6 +16,11 @@ data class BorradorSolicitud(
     val contacto: Contacto = Contacto(),
     val servicios: List<String> = listOf("FABRICACION"),
     val observaciones: String = "",
+    val comuna: Comuna? = null,
+    /** Proveedores elegidos; vacía: todos los de la comuna. */
+    val proveedores: List<Long> = emptyList(),
+    /** true: pide un servicio sin ventanas (reparación, visita técnica…). */
+    val sinVentanas: Boolean = false,
 )
 
 /**

@@ -6,6 +6,8 @@ import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AddBox
 import androidx.compose.material.icons.outlined.AdminPanelSettings
+import androidx.compose.material.icons.outlined.Badge
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.CropFree
@@ -41,7 +43,9 @@ enum class Pantalla(val titulo: String, val icono: ImageVector, val disponible: 
     DISENAR_VENTANA("Diseñar ventana", Icons.Outlined.ViewInAr),
     CARRITO("Carrito", Icons.Outlined.ShoppingCart),
     MIS_COTIZACIONES("Mis cotizaciones", Icons.Outlined.History),
+    PROVEEDORES("Proveedores", Icons.Outlined.Storefront),
     SOLICITUDES("Solicitudes", Icons.Outlined.Inbox),
+    MI_PERFIL("Mi perfil", Icons.Outlined.Badge),
 }
 
 /** Quien usa la app sin haber entrado: puede diseñar, ver en su pared y armar el carrito. */
@@ -60,11 +64,17 @@ val gruposMenu = listOf(
             Pantalla.QUINCALLERIA, Pantalla.VIDRIOS, Pantalla.COLORES, Pantalla.SERIES,
         ),
     ),
-    GrupoMenu("cliente", "Cliente", Icons.Outlined.Person, setOf("ADMIN", "CLIENTE", INVITADO), listOf(Pantalla.DISENAR_VENTANA, Pantalla.CARRITO, Pantalla.MIS_COTIZACIONES)),
-    GrupoMenu("empresa", "Empresa", Icons.Outlined.Business, setOf("ADMIN", "PROVEEDOR"), listOf(Pantalla.SOLICITUDES)),
+    GrupoMenu(
+        "cliente", "Cliente", Icons.Outlined.Person, setOf("ADMIN", "CLIENTE", INVITADO),
+        listOf(Pantalla.DISENAR_VENTANA, Pantalla.CARRITO, Pantalla.MIS_COTIZACIONES, Pantalla.PROVEEDORES),
+    ),
+    GrupoMenu("empresa", "Empresa", Icons.Outlined.Business, setOf("ADMIN", "PROVEEDOR"), listOf(Pantalla.SOLICITUDES, Pantalla.MI_PERFIL)),
 )
 
-fun gruposDe(rol: String) = gruposMenu.filter { rol in it.roles }
+/** Mi perfil es solo de los proveedores: el administrador no oferta. */
+fun gruposDe(rol: String) = gruposMenu.filter { rol in it.roles }.map { g ->
+    if (rol == "ADMIN" && Pantalla.MI_PERFIL in g.pantallas) GrupoMenu(g.id, g.titulo, g.icono, g.roles, g.pantallas - Pantalla.MI_PERFIL) else g
+}
 
 /** Pantalla con la que parte cada rol (como RUTA_INICIAL de la web). */
 fun pantallaInicial(rol: String) = when (rol) {

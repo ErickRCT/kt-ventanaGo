@@ -23,10 +23,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -61,23 +63,26 @@ import cl.ventanago.app.datos.Cotizaciones
 import cl.ventanago.app.datos.EmpresaApi
 import cl.ventanago.app.datos.GANANCIA_REFERENCIAL
 import cl.ventanago.app.datos.ItemVentana
+import cl.ventanago.app.datos.Oferta
 import cl.ventanago.app.datos.Recursos
 import cl.ventanago.app.datos.RespuestaSolicitud
 import cl.ventanago.app.datos.Solicitud
 import cl.ventanago.app.datos.Ventana
 import cl.ventanago.app.datos.factorVenta
 import cl.ventanago.app.datos.mensaje
-import cl.ventanago.app.datos.nombreEstadoSolicitud
 import cl.ventanago.app.datos.nombreServicio
 import cl.ventanago.app.datos.pesos
 import cl.ventanago.app.ui.Colores
 import cl.ventanago.app.ui.comun.CampoTexto
-import cl.ventanago.app.ui.comun.Interruptor
 import cl.ventanago.app.ui.comun.MensajeError
 import cl.ventanago.app.ui.comun.Opciones
 import cl.ventanago.app.ui.modulos.cliente.MiniVentana
 import cl.ventanago.app.ui.modulos.cliente.detalleItem
 import cl.ventanago.app.ui.modulos.cotizaciones.fechaLegible
+import cl.ventanago.app.ui.modulos.mercado.DialogoChat
+import cl.ventanago.app.ui.modulos.mercado.EtiquetaEstadoSolicitud
+import cl.ventanago.app.ui.modulos.mercado.FotosSolicitud
+import cl.ventanago.app.ui.modulos.mercado.NombreProveedor
 import cl.ventanago.app.ui.modulos.soloDigitos
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -92,6 +97,7 @@ private const val MAX_ANCHO_MM = 9000
 private const val MAX_ALTO_MM = 3000
 private const val MAX_CANTIDAD = 99
 private const val MAX_PRECIO = 100_000_000L
+private const val MAX_PLAZO_DIAS = 365
 
 /** Ventana en edición: los números como texto para poder borrar y reescribir el campo. */
 private class Borrador(val original: ItemVentana) {
@@ -109,62 +115,35 @@ private fun abrir(context: Context, intent: Intent) {
     }
 }
 
-/** Correo con la respuesta, armado como en la web (el backend aún no envía correos). */
-private fun correoRespuesta(context: Context, s: Solicitud) {
-    val r = s.respuesta ?: return
-    val resumen = when (s.estado) {
-        "ACEPTADA" -> "La empresa aceptó tu solicitud de cotización."
-        "MODIFICADA" -> "La empresa modificó tu solicitud de cotización. Revisa el detalle a continuación."
-        else -> "La empresa no pudo aceptar tu solicitud de cotización."
-    }
-    val cuerpo = buildString {
-        appendLine("Hola ${s.contacto?.nombre.orEmpty()},")
-        appendLine()
-        appendLine(resumen)
-        r.mensaje?.takeIf { it.isNotBlank() }?.let { appendLine(); appendLine(it) }
-        if (s.estado != "RECHAZADA") {
-            appendLine()
-            appendLine("Detalle:")
-            s.items.forEach { i ->
-                appendLine("- ${i.cantidad} × ${i.descripcion} ${i.anchoMm} × ${i.altoMm} mm, ${i.colorNombre}, vidrio ${i.vidrioNombre}" + (i.precioUnitario?.let { " · ${pesos(it)} c/u" } ?: ""))
-            }
-            r.total?.let { appendLine(); appendLine("Total: ${pesos(it)}") }
-            appendLine()
-            appendLine("Las medidas definitivas se confirman en terreno.")
-        }
-        appendLine()
-        appendLine("Saludos,")
-        append("VentanaGo")
-    }
-    val asunto = "Cotización N°${s.numero} ${nombreEstadoSolicitud(s.estado).lowercase()}"
-    abrir(
-        context,
-        Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:" + Uri.encode(s.contacto?.email.orEmpty())))
-            .putExtra(Intent.EXTRA_EMAIL, arrayOf(s.contacto?.email.orEmpty()))
-            .putExtra(Intent.EXTRA_SUBJECT, asunto)
-            .putExtra(Intent.EXTRA_TEXT, cuerpo),
-    )
+private fun nombreEstadoOferta(o: Oferta) = when {
+    o.tipo == "RECHAZADA" -> "No tomaste este trabajo"
+    o.estado == "ELEGIDA" -> "¡El cliente eligió tu oferta!"
+    o.estado == "DESCARTADA" -> "El cliente eligió otra oferta o canceló"
+    else -> "Oferta enviada: esperando que el cliente decida"
 }
 
 /**
- * Detalle de una solicitud (equivale a DetalleSolicitud de la web). Si está pendiente, la empresa la acepta
- * con precio, la modifica (medidas, cantidades y precios) o la rechaza; [alCerrar] recibe la actualizada o null.
+ * Detalle de una solicitud para el proveedor. Si aún no oferta, envía su oferta: acepta lo pedido con precio,
+ * propone cambios (medidas, cantidades y precios) o no toma el trabajo. Después ve el estado de su oferta y
+ * conversa con el cliente. [alCerrar] recibe la solicitud actualizada o null.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DetalleSolicitudEmpresa(s: Solicitud, alCerrar: (Solicitud?) -> Unit) {
+fun DetalleSolicitudEmpresa(s: Solicitud, esAdmin: Boolean, alCerrar: (Solicitud?) -> Unit) {
     val context = LocalContext.current
     val alcance = rememberCoroutineScope()
-    val pendiente = s.estado == "PENDIENTE"
+    val puedeOfertar = s.estado == "PENDIENTE" && s.miOferta == null && !esAdmin
+    val sinVentanas = s.items.isEmpty()
 
     var accion by remember { mutableStateOf("ACEPTADA") }
     val borradores = remember { s.items.map { Borrador(it) } }
+    var totalServicio by remember { mutableStateOf("") }
+    var plazo by remember { mutableStateOf("") }
     var mensaje by remember { mutableStateOf("") }
-    var notificarApp by remember { mutableStateOf(true) }
-    var notificarCorreo by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var enviando by remember { mutableStateOf(false) }
     var sugiriendo by remember { mutableStateOf(false) }
+    var chat by remember { mutableStateOf<Oferta?>(null) }
 
     /** Precio sugerido = costo que calcula el backend (como en Crear cotización) con la ganancia de partida. */
     fun sugerirPrecios() = alcance.launch {
@@ -218,27 +197,40 @@ fun DetalleSolicitudEmpresa(s: Solicitud, alCerrar: (Solicitud?) -> Unit) {
     fun enviar() {
         error = null
         var items = s.items
+        var total: Long? = null
+        val plazoDias = plazo.toIntOrNull()
         if (accion != "RECHAZADA") {
-            items = construir() ?: return
-            val cambio = items.zip(s.items).any { (n, o) -> n.anchoMm != o.anchoMm || n.altoMm != o.altoMm || n.cantidad != o.cantidad }
-            if (accion == "MODIFICADA" && !cambio) {
-                error = "No cambiaste medidas ni cantidades. Si estás de acuerdo con lo pedido, usa Aceptar."
-                return
+            if (sinVentanas) {
+                total = totalServicio.toLongOrNull()?.takeIf { it in 1..MAX_PRECIO }
+                    ?: run { error = "Ingresa el precio total del trabajo."; return }
+            } else {
+                items = construir() ?: return
+                val cambio = items.zip(s.items).any { (n, o) -> n.anchoMm != o.anchoMm || n.altoMm != o.altoMm || n.cantidad != o.cantidad }
+                if (accion == "MODIFICADA" && !cambio) {
+                    error = "No cambiaste medidas ni cantidades. Si estás de acuerdo con lo pedido, usa Aceptar."
+                    return
+                }
+                if (accion == "ACEPTADA" && cambio) {
+                    error = "Cambiaste medidas o cantidades: usa Modificar para informarlo al cliente."
+                    return
+                }
             }
-            if (accion == "ACEPTADA" && cambio) {
-                error = "Cambiaste medidas o cantidades: usa Modificar para informarlo al cliente."
+            if (plazo.isNotBlank() && (plazoDias == null || plazoDias !in 1..MAX_PLAZO_DIAS)) {
+                error = "El plazo debe estar entre 1 y $MAX_PLAZO_DIAS días."
                 return
             }
         }
         if (accion != "ACEPTADA" && mensaje.isBlank()) {
-            error = if (accion == "RECHAZADA") "Indica el motivo del rechazo." else "Explica al cliente qué modificaste."
+            error = if (accion == "RECHAZADA") "Indica el motivo por el que no tomas el trabajo." else "Explica al cliente qué modificaste."
             return
         }
         alcance.launch {
             enviando = true
             try {
-                val actualizada = EmpresaApi.responder(s.numero, RespuestaSolicitud(accion, mensaje.trim(), items, notificarApp, notificarCorreo))
-                if (notificarCorreo) correoRespuesta(context, actualizada)
+                val actualizada = EmpresaApi.responder(
+                    s.numero,
+                    RespuestaSolicitud(accion, mensaje.trim(), items, notificarEnApp = true, notificarPorCorreo = false, total = total, plazoDias = plazoDias),
+                )
                 alCerrar(actualizada)
             } catch (e: CancellationException) {
                 throw e
@@ -250,8 +242,12 @@ fun DetalleSolicitudEmpresa(s: Solicitud, alCerrar: (Solicitud?) -> Unit) {
     }
 
     // Total en vivo con lo que hay escrito.
-    val total = if (accion == "RECHAZADA") null else borradores.takeIf { lista -> lista.all { it.precio.toLongOrNull() != null } }
-        ?.sumOf { (it.precio.toLongOrNull() ?: 0) * (it.cantidad.toIntOrNull() ?: 0) }
+    val total = when {
+        accion == "RECHAZADA" -> null
+        sinVentanas -> totalServicio.toLongOrNull()
+        else -> borradores.takeIf { lista -> lista.all { it.precio.toLongOrNull() != null } }
+            ?.sumOf { (it.precio.toLongOrNull() ?: 0) * (it.cantidad.toIntOrNull() ?: 0) }
+    }
 
     Dialog(
         onDismissRequest = { if (!enviando) alCerrar(null) },
@@ -263,7 +259,7 @@ fun DetalleSolicitudEmpresa(s: Solicitud, alCerrar: (Solicitud?) -> Unit) {
                 TopAppBar(
                     title = { Text("Solicitud N° ${s.numero}") },
                     navigationIcon = { IconButton(onClick = { alCerrar(null) }, enabled = !enviando) { Icon(Icons.Filled.Close, contentDescription = "Cerrar") } },
-                    actions = { Row(Modifier.padding(end = 12.dp)) { EtiquetaEstadoSolicitud(s.estado) } },
+                    actions = { Row(Modifier.padding(end = 12.dp)) { if (esAdmin) EtiquetaEstadoSolicitud(s.estado) else EtiquetaOferta(s) } },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Colores.azul, titleContentColor = Color.White, navigationIconContentColor = Color.White),
                 )
             },
@@ -286,54 +282,85 @@ fun DetalleSolicitudEmpresa(s: Solicitud, alCerrar: (Solicitud?) -> Unit) {
                 Bloque("Cliente") {
                     val c = s.contacto
                     Text(c?.nombre.orEmpty(), fontWeight = FontWeight.SemiBold)
-                    Text(listOfNotNull(c?.email, c?.telefono?.takeIf { it.isNotBlank() }).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = Colores.gris)
-                    c?.direccion?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Colores.gris) }
+                    s.comuna?.let { Text(listOfNotNull(it.nombre, it.region).joinToString(", "), style = MaterialTheme.typography.bodyMedium) }
+                    val conContacto = !c?.email.isNullOrBlank()
+                    if (conContacto) {
+                        Text(listOfNotNull(c?.email, c?.telefono?.takeIf { it.isNotBlank() }).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = Colores.gris)
+                        c?.direccion?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Colores.gris) }
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.Lock, contentDescription = null, tint = Colores.gris, modifier = Modifier.size(16.dp))
+                            Text(
+                                " Verás su contacto y dirección si elige tu oferta. Antes, conversa por el chat de tu oferta.",
+                                style = MaterialTheme.typography.bodySmall, color = Colores.gris,
+                            )
+                        }
+                    }
                     Text("Recibida el ${fechaLegible(s.fecha?.take(10))}", style = MaterialTheme.typography.bodySmall, color = Colores.gris)
                     Text("Servicios: ${s.servicios.joinToString(", ") { nombreServicio(it) }}", style = MaterialTheme.typography.bodyMedium)
                     s.observaciones?.takeIf { it.isNotBlank() }?.let {
                         Surface(color = Colores.azulClaro, shape = RoundedCornerShape(8.dp)) {
-                            Text("Comentarios: $it", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(8.dp))
+                            Text((if (sinVentanas) "Trabajo: " else "Comentarios: ") + it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(8.dp))
                         }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        c?.telefono?.takeIf { it.isNotBlank() }?.let { tel ->
-                            OutlinedButton(onClick = { abrir(context, Intent(Intent.ACTION_DIAL, Uri.parse("tel:$tel"))) }) {
-                                Icon(Icons.Outlined.Call, contentDescription = null)
-                                Text(" Llamar")
+                    FotosSolicitud(s.numero, s.fotos)
+                    if (conContacto) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            c?.telefono?.takeIf { it.isNotBlank() }?.let { tel ->
+                                OutlinedButton(onClick = { abrir(context, Intent(Intent.ACTION_DIAL, Uri.parse("tel:$tel"))) }) {
+                                    Icon(Icons.Outlined.Call, contentDescription = null)
+                                    Text(" Llamar")
+                                }
                             }
-                        }
-                        c?.email?.takeIf { it.isNotBlank() }?.let { mail ->
-                            OutlinedButton(onClick = { abrir(context, Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$mail"))) }) {
-                                Icon(Icons.Outlined.Email, contentDescription = null)
-                                Text(" Escribir")
+                            c?.email?.takeIf { it.isNotBlank() }?.let { mail ->
+                                OutlinedButton(onClick = { abrir(context, Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$mail"))) }) {
+                                    Icon(Icons.Outlined.Email, contentDescription = null)
+                                    Text(" Escribir")
+                                }
                             }
                         }
                     }
                 }
 
-                if (!pendiente) {
-                    s.respuesta?.let { r ->
-                        Bloque("Respuesta enviada") {
-                            Text("${nombreEstadoSolicitud(s.estado)} · ${fechaLegible(r.fecha?.take(10))}", fontWeight = FontWeight.SemiBold)
-                            r.mensaje?.takeIf { it.isNotBlank() }?.let { Text(it) }
-                            r.total?.let { Text("Total: ${pesos(it)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Colores.menuFondo) }
-                            Text(
-                                listOfNotNull("avisado en la app".takeIf { r.notificadoEnApp }, "avisado por correo".takeIf { r.notificadoPorCorreo })
-                                    .joinToString(" y ").ifBlank { "sin aviso al cliente" }.replaceFirstChar { it.uppercase() },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Colores.gris,
-                            )
+                // Oferta ya enviada (proveedor) u ofertas recibidas (administrador)
+                s.miOferta?.let { o ->
+                    Bloque("Tu oferta") {
+                        Text(nombreEstadoOferta(o), fontWeight = FontWeight.SemiBold)
+                        ResumenOferta(o)
+                        if (o.tipo != "RECHAZADA") {
+                            OutlinedButton(onClick = { chat = o }, modifier = Modifier.fillMaxWidth()) {
+                                Icon(Icons.AutoMirrored.Outlined.Chat, contentDescription = null)
+                                Text(if (o.mensajes > 0) " Chat con el cliente (${o.mensajes})" else " Chat con el cliente")
+                            }
                         }
                     }
-                    s.itemsOriginales?.let { originales ->
-                        Bloque("Solicitado por el cliente") { originales.forEach { FilaItem(it) } }
+                }
+                if (esAdmin) {
+                    Bloque("Ofertas (${s.ofertas.orEmpty().size})") {
+                        if (s.ofertas.isNullOrEmpty()) Text("Aún no hay ofertas.", color = Colores.gris)
+                        s.ofertas.orEmpty().forEach { o ->
+                            Surface(color = Colores.fondo, shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, Colores.borde), modifier = Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    o.proveedor?.let { NombreProveedor(it) }
+                                    Text(nombreEstadoOferta(o).removePrefix("¡").removeSuffix("!"), style = MaterialTheme.typography.bodySmall, color = Colores.gris)
+                                    ResumenOferta(o)
+                                }
+                            }
+                        }
                     }
-                    Bloque(if (s.itemsOriginales != null) "Propuesta enviada" else "Ventanas") { s.items.forEach { FilaItem(it) } }
+                }
+
+                if (!puedeOfertar) {
+                    Bloque(if (sinVentanas) "Trabajo pedido" else "Ventanas pedidas") {
+                        if (sinVentanas) Text(s.observaciones.orEmpty())
+                        s.items.forEach { FilaItem(it) }
+                    }
                 } else {
-                    Bloque("Responder") {
+                    Bloque("Tu oferta") {
                         Opciones(
                             "¿Qué harás con esta solicitud?",
-                            listOf("ACEPTADA" to "Aceptar", "MODIFICADA" to "Modificar", "RECHAZADA" to "Rechazar"),
+                            if (sinVentanas) listOf("ACEPTADA" to "Ofertar", "RECHAZADA" to "No tomar")
+                            else listOf("ACEPTADA" to "Aceptar", "MODIFICADA" to "Modificar", "RECHAZADA" to "No tomar"),
                             accion,
                         ) {
                             accion = it
@@ -341,63 +368,76 @@ fun DetalleSolicitudEmpresa(s: Solicitud, alCerrar: (Solicitud?) -> Unit) {
                         }
                         Text(
                             when (accion) {
-                                "ACEPTADA" -> "Define el precio unitario de cada ventana."
+                                "ACEPTADA" -> if (sinVentanas) "Indica el precio total del trabajo." else "Define el precio unitario de cada ventana."
                                 "MODIFICADA" -> "Ajusta medidas, cantidades y precios, y explica al cliente qué cambiaste."
-                                else -> "Indica al cliente el motivo del rechazo."
+                                else -> "La solicitud pasará a Cerradas. El cliente solo verá que no tomaste el trabajo."
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = Colores.gris,
                         )
                     }
 
-                    Bloque("Ventanas") {
-                        borradores.forEach { b ->
-                            val i = b.original
-                            Surface(color = Colores.fondo, shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, Colores.borde)) {
-                                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    FilaItem(i)
-                                    if (accion == "MODIFICADA") {
-                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            CampoTexto("Ancho", b.ancho, { b.ancho = soloDigitos(it).take(5) }, Modifier.weight(1f), teclado = KeyboardType.Number, ayuda = "mm")
-                                            CampoTexto("Alto", b.alto, { b.alto = soloDigitos(it).take(5) }, Modifier.weight(1f), teclado = KeyboardType.Number, ayuda = "mm")
-                                            CampoTexto("Cant.", b.cantidad, { b.cantidad = soloDigitos(it).take(2) }, Modifier.weight(0.7f), teclado = KeyboardType.Number)
+                    if (!sinVentanas) {
+                        Bloque("Ventanas") {
+                            borradores.forEach { b ->
+                                val i = b.original
+                                Surface(color = Colores.fondo, shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, Colores.borde)) {
+                                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        FilaItem(i)
+                                        if (accion == "MODIFICADA") {
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                CampoTexto("Ancho", b.ancho, { b.ancho = soloDigitos(it).take(5) }, Modifier.weight(1f), teclado = KeyboardType.Number, ayuda = "mm")
+                                                CampoTexto("Alto", b.alto, { b.alto = soloDigitos(it).take(5) }, Modifier.weight(1f), teclado = KeyboardType.Number, ayuda = "mm")
+                                                CampoTexto("Cant.", b.cantidad, { b.cantidad = soloDigitos(it).take(2) }, Modifier.weight(0.7f), teclado = KeyboardType.Number)
+                                            }
                                         }
-                                    }
-                                    if (accion != "RECHAZADA") {
-                                        CampoTexto(
-                                            "Precio unitario", b.precio, { b.precio = soloDigitos(it).take(9) },
-                                            teclado = KeyboardType.Number, prefijo = "$ ",
-                                            ayuda = b.precio.toLongOrNull()?.let { "${pesos(it)} c/u · ${pesos(it * (b.cantidad.toIntOrNull() ?: 0))} en total" },
-                                        )
+                                        if (accion != "RECHAZADA") {
+                                            CampoTexto(
+                                                "Precio unitario", b.precio, { b.precio = soloDigitos(it).take(9) },
+                                                teclado = KeyboardType.Number, prefijo = "$ ",
+                                                ayuda = b.precio.toLongOrNull()?.let { "${pesos(it)} c/u · ${pesos(it * (b.cantidad.toIntOrNull() ?: 0))} en total" },
+                                            )
+                                        }
                                     }
                                 }
                             }
-                        }
-                        if (accion != "RECHAZADA") {
-                            OutlinedButton(onClick = { sugerirPrecios() }, enabled = !sugiriendo && !enviando, modifier = Modifier.fillMaxWidth()) {
-                                if (sugiriendo) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                                else Icon(Icons.Outlined.Calculate, contentDescription = null)
-                                Text(" Calcular precios sugeridos")
+                            if (accion != "RECHAZADA") {
+                                OutlinedButton(onClick = { sugerirPrecios() }, enabled = !sugiriendo && !enviando, modifier = Modifier.fillMaxWidth()) {
+                                    if (sugiriendo) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                                    else Icon(Icons.Outlined.Calculate, contentDescription = null)
+                                    Text(" Calcular precios sugeridos")
+                                }
+                                Text(
+                                    "Usa el mismo cálculo que Crear cotización (perfiles, quincallería y vidrio) con $GANANCIA_REFERENCIAL% de ganancia. Puedes ajustarlos.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Colores.gris,
+                                )
                             }
-                            Text(
-                                "Usa el mismo cálculo que Crear cotización (perfiles, quincallería y vidrio) con $GANANCIA_REFERENCIAL% de ganancia. Puedes ajustarlos.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Colores.gris,
-                            )
                         }
                     }
 
-                    Bloque("Mensaje y aviso") {
+                    Bloque("Condiciones y mensaje") {
+                        if (accion != "RECHAZADA") {
+                            if (sinVentanas) {
+                                CampoTexto(
+                                    "Precio total", totalServicio, { totalServicio = soloDigitos(it).take(9) },
+                                    teclado = KeyboardType.Number, prefijo = "$ ", ayuda = totalServicio.toLongOrNull()?.let { pesos(it) },
+                                )
+                            }
+                            CampoTexto(
+                                "Plazo (opcional)", plazo, { plazo = soloDigitos(it).take(3) },
+                                teclado = KeyboardType.Number, ayuda = "Días hábiles para terminar el trabajo",
+                            )
+                        }
                         CampoTexto(
                             when (accion) {
                                 "ACEPTADA" -> "Mensaje para el cliente (opcional)"
                                 "MODIFICADA" -> "Qué modificaste"
-                                else -> "Motivo del rechazo"
+                                else -> "Motivo"
                             },
                             mensaje, { mensaje = it }, lineas = 3,
+                            ayuda = if (accion == "ACEPTADA") "Ej: incluye retiro de la ventana antigua y garantía de 1 año." else null,
                         )
-                        Interruptor("Avisar en la app", notificarApp, { notificarApp = it }, "El cliente lo verá en su campana y en Mis cotizaciones.")
-                        Interruptor("Avisar por correo", notificarCorreo, { notificarCorreo = it }, "Se abrirá tu app de correo con el mensaje listo para enviar.")
                     }
 
                     total?.let {
@@ -416,9 +456,9 @@ fun DetalleSolicitudEmpresa(s: Solicitud, alCerrar: (Solicitud?) -> Unit) {
                         if (enviando) CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
                         else Text(
                             when (accion) {
-                                "ACEPTADA" -> "Aceptar y enviar precio"
+                                "ACEPTADA" -> "Enviar oferta"
                                 "MODIFICADA" -> "Enviar propuesta"
-                                else -> "Rechazar solicitud"
+                                else -> "No tomar este trabajo"
                             },
                         )
                     }
@@ -427,6 +467,18 @@ fun DetalleSolicitudEmpresa(s: Solicitud, alCerrar: (Solicitud?) -> Unit) {
             }
         }
     }
+
+    chat?.let { o ->
+        DialogoChat(o.id, "Chat · Solicitud N° ${s.numero}", puedeEscribir = o.estado != "DESCARTADA" && s.estado != "CANCELADA") { chat = null }
+    }
+}
+
+@Composable
+private fun ResumenOferta(o: Oferta) {
+    o.total?.let { Text("Total: ${pesos(it)}" + (o.plazoDias?.let { d -> " · $d días hábiles" } ?: ""), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Colores.menuFondo) }
+    o.mensaje?.takeIf { it.isNotBlank() }?.let { Text("“$it”", style = MaterialTheme.typography.bodyMedium) }
+    o.items.forEach { FilaItem(it) }
+    Text("Enviada el ${fechaLegible(o.fecha?.take(10))}", style = MaterialTheme.typography.bodySmall, color = Colores.gris)
 }
 
 @Composable

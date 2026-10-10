@@ -52,7 +52,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedButton
+import cl.ventanago.app.datos.IngresoGoogle
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -77,13 +82,14 @@ import kotlinx.coroutines.launch
 private val ROLES_APP = setOf("ADMIN", "CLIENTE", "PROVEEDOR")
 
 /**
- * Ingreso: los clientes con un código que llega a su correo (sin contraseña) y el administrador con
- * contraseña, igual que en la web.
+ * Ingreso: los clientes con Google o con un código que llega a su correo (sin contraseña), y el administrador
+ * y los proveedores con contraseña, igual que en la web.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaLogin(autenticacion: Autenticacion, motivo: String? = null, alVolver: (() -> Unit)? = null) {
     val alcance = rememberCoroutineScope()
+    val context = LocalContext.current
     val foco = LocalFocusManager.current
     var esCliente by rememberSaveable { mutableStateOf(true) }
     // Si ya escribió su correo en el carrito (sin cuenta), se usa ese.
@@ -220,6 +226,24 @@ fun PantallaLogin(autenticacion: Autenticacion, motivo: String? = null, alVolver
                     error?.let { MensajeError(it) }
                     info?.takeIf { esCliente && codigoEnviado }?.let {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = Colores.textoSecundario)
+                    }
+
+                    if (esCliente && IngresoGoogle.disponible) {
+                        OutlinedButton(
+                            onClick = { ejecutar { IngresoGoogle.ingresar(context)?.let { entrar(it) } } },
+                            enabled = !cargando,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                        ) {
+                            Text("G", fontWeight = FontWeight.Bold, color = Color(0xFF4285F4), style = MaterialTheme.typography.titleLarge)
+                            Text("   Continuar con Google")
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            HorizontalDivider(Modifier.weight(1f))
+                            Text("  o con tu correo  ", style = MaterialTheme.typography.bodySmall, color = Colores.gris)
+                            HorizontalDivider(Modifier.weight(1f))
+                        }
                     }
 
                     OutlinedTextField(
