@@ -175,3 +175,49 @@ data class Pauta(
     val perfiles: List<PautaPerfil>? = null,
     val serie: Serie? = null,
 )
+
+// Cotizaciones
+
+@Serializable
+data class Ventana(
+    val ventanaId: Long? = null,
+    /** Ítem: dónde va la ventana (p. ej. "Living"). */
+    val descripcion: String? = null,
+    val cantidad: Int? = 1,
+    /** Medidas en mm. */
+    val ancho: Int = 0,
+    val alto: Int = 0,
+    val observaciones: String? = null,
+    /** Costo de fabricación de una unidad (lo calcula el backend). */
+    val precioNeto: Long = 0,
+    val cotizacionId: Long? = null,
+    val color: ColorVentana? = null,
+    val vidrio: Vidrio? = null,
+    val pauta: Pauta? = null,
+)
+
+@Serializable
+data class Cotizacion(
+    val cotizacionId: Long? = null,
+    val nombreCotizacion: String? = null,
+    val estado: String? = "CREADA",
+    /** yyyy-MM-dd */
+    val fecha: String? = null,
+    /** Porcentajes. */
+    val ganancia: Int? = 50,
+    val descuento: Int? = 0,
+    val condiciones: String? = null,
+    val flete: String? = null,
+    val valorFlete: Int? = 0,
+    val instalacion: String? = null,
+    val valorInstalacion: Int? = 0,
+    val otrosGastos: String? = null,
+    val valorOtrosGastos: Int? = 0,
+    val valorManoDeObra: Int? = 0,
+    /** Costo de las ventanas (precio × cantidad); lo recalcula el backend. */
+    val neto: Long? = 0,
+    val totalm2: Double? = 0.0,
+    val cantidadProductos: Int? = 0,
+    val ventanas: List<Ventana>? = null,
+    val cliente: Cliente? = null,
+)

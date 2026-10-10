@@ -25,8 +25,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 /** Pantallas del menú lateral; las que aún no se migran ([disponible] = false) muestran un aviso. */
 enum class Pantalla(val titulo: String, val icono: ImageVector, val disponible: Boolean = true) {
     INICIO("Inicio", Icons.Outlined.Home),
-    CREAR_COTIZACION("Crear cotización", Icons.Outlined.AddBox, disponible = false),
-    COTIZACIONES("Cotizaciones", Icons.AutoMirrored.Outlined.Assignment, disponible = false),
+    CREAR_COTIZACION("Crear cotización", Icons.Outlined.AddBox),
+    COTIZACIONES("Cotizaciones", Icons.AutoMirrored.Outlined.Assignment),
     CLIENTES("Clientes", Icons.Outlined.Group),
     PAUTAS("Pautas", Icons.Outlined.ViewAgenda),
     TIPOS_PAUTA("Tipos de pauta", Icons.Outlined.Category),

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- PDF de cotizaciones y órdenes de trabajo, guardados en la caché para abrirlos o compartirlos. -->
+    <cache-path name="documentos" path="documentos/" />
+</paths>

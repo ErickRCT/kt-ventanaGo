@@ -60,6 +60,27 @@ object Api {
         ejecutar("DELETE", ruta, null)
     }
 
+    /** Descarga un archivo binario (PDF de cotización u orden de trabajo). */
+    suspend fun descargar(ruta: String): ByteArray = withContext(Dispatchers.IO) {
+        val peticion = Request.Builder()
+            .url(BuildConfig.API_BASE_URL + ruta)
+            .apply { token?.let { header("Authorization", "Bearer $it") } }
+            .build()
+        val respuesta = try {
+            http.newCall(peticion).execute()
+        } catch (e: IOException) {
+            throw ErrorApi("No hay conexión con el servidor. Revisa tu internet e inténtalo nuevamente.")
+        }
+        respuesta.use {
+            if (it.isSuccessful) return@withContext it.body?.bytes() ?: ByteArray(0)
+            if (it.code == 401 && token != null) {
+                withContext(Dispatchers.Main) { alVencerSesion() }
+                throw ErrorApi("Tu sesión venció. Vuelve a iniciar sesión.", 401)
+            }
+            throw ErrorApi(mensajeDelServidor(it.body?.string().orEmpty()) ?: "No se pudo generar el documento.", it.code)
+        }
+    }
+
     private suspend fun ejecutar(metodo: String, ruta: String, cuerpoJson: String?): String = withContext(Dispatchers.IO) {
         val peticion = Request.Builder()
             .url(BuildConfig.API_BASE_URL + ruta)

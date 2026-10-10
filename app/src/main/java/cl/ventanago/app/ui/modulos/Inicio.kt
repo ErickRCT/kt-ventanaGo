@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import cl.ventanago.app.datos.Cotizaciones
 import cl.ventanago.app.datos.Recursos
 import cl.ventanago.app.ui.Colores
 import cl.ventanago.app.ui.comun.EstadoMensaje
@@ -45,6 +46,7 @@ import kotlinx.coroutines.coroutineScope
 
 /** Cantidad de registros de cada mantenedor, para el resumen de Inicio. */
 private val conteos: Map<Pantalla, suspend () -> Int> = mapOf(
+    Pantalla.COTIZACIONES to { Cotizaciones.listar().size },
     Pantalla.CLIENTES to { Recursos.clientes.listar().size },
     Pantalla.PAUTAS to { Recursos.pautas.listar().size },
     Pantalla.SERIES to { Recursos.series.listar().size },
@@ -144,7 +146,7 @@ fun PantallaInicio(nombre: String, abrir: (Pantalla) -> Unit) {
                 Icon(Icons.Outlined.Construction, contentDescription = null, tint = Color(0xFF8A5300))
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    "Crear cotización y Cotizaciones se migran en la siguiente etapa; por ahora siguen en la versión web.",
+                    "Las vistas de Cliente y Empresa se migran en la siguiente etapa; por ahora siguen en la versión web.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color(0xFF5C3A00),
                 )

@@ -70,6 +70,7 @@ import cl.ventanago.app.datos.Sesion
 import cl.ventanago.app.ui.Colores
 import cl.ventanago.app.ui.comun.LocalAvisos
 import cl.ventanago.app.ui.modulos.PantallaClientes
+import cl.ventanago.app.ui.modulos.cotizaciones.PantallaCotizaciones
 import cl.ventanago.app.ui.modulos.PantallaColores
 import cl.ventanago.app.ui.modulos.PantallaInicio
 import cl.ventanago.app.ui.modulos.PantallaPautas
@@ -132,6 +133,8 @@ fun PanelAdministrador(sesion: Sesion, alCerrarSesion: () -> Unit) {
                     Crossfade(targetState = pantalla, label = "pantalla") { actual ->
                         when (actual) {
                             Pantalla.INICIO -> PantallaInicio(nombre, abrir)
+                            Pantalla.CREAR_COTIZACION -> PantallaCotizaciones(nuevaAlAbrir = true, alCerrarNueva = { pantalla = Pantalla.COTIZACIONES })
+                            Pantalla.COTIZACIONES -> PantallaCotizaciones()
                             Pantalla.CLIENTES -> PantallaClientes()
                             Pantalla.PAUTAS -> PantallaPautas()
                             Pantalla.TIPOS_PAUTA -> PantallaTiposPauta()
