@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Marco exterior -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M32,30h44v48h-44z M36,34v40h16v-40z M56,34v40h16v-40z" />
+    <!-- Reflejos del vidrio -->
+    <path
+        android:fillColor="#B3E5FC"
+        android:pathData="M39,46l9,-9h3l-12,12z M59,46l9,-9h3l-12,12z" />
+    <!-- Manillas -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M48,52h2v6h-2z M58,52h2v6h-2z" />
+</vector>
