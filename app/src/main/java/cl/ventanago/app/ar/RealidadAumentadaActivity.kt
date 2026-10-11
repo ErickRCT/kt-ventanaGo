@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.lifecycleScope
+import cl.ventanago.app.ui.ModoTema
 import cl.ventanago.app.ui.TemaVentanaGo
 import cl.ventanago.app.ventana.ConfigVentana
 import cl.ventanago.app.ventana.ModeloVentana
@@ -85,6 +86,7 @@ class RealidadAumentadaActivity : ComponentActivity() {
         config = leerConfig(intent)
         nombre = intent.getStringExtra(EXTRA_NOMBRE).orEmpty()
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT))
+        ModoTema.iniciar(applicationContext)
         setContent { TemaVentanaGo { PantallaAR(modo, config, nombre, render, this, acciones) } }
         comenzar()
     }

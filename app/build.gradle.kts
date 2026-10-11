@@ -20,8 +20,8 @@ android {
         applicationId = "cl.ventanago.movil"
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.9.0"
+        versionCode = 10
+        versionName = "0.10.0"
 
         // Mismo backend (Render) y misma carpeta de imágenes (front en Vercel) que la versión web.
         // Para probar contra un backend local: ./gradlew assembleRelease -Pventanago.apiUrl=http://192.168.1.10:7099

@@ -1,5 +1,8 @@
 package cl.ventanago.app.datos
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import java.net.URLEncoder
@@ -216,20 +219,27 @@ private fun codificar(texto: String) = URLEncoder.encode(texto, "UTF-8")
 object ClienteApi {
     private val listaItems = ListSerializer(ItemVentana.serializer())
 
-    suspend fun carrito(): List<ItemVentana> = Api.lista("/carrito", ItemVentana.serializer())
+    /** Ventanas en el carrito de la cuenta según la última respuesta del backend (el número de la barra inferior). */
+    var unidadesCarrito by mutableStateOf<Int?>(null)
+        private set
+
+    private fun List<ItemVentana>.contadas() = also { unidadesCarrito = sumOf { it.cantidad } }
+
+    suspend fun carrito(): List<ItemVentana> = Api.lista("/carrito", ItemVentana.serializer()).contadas()
 
     suspend fun agregar(item: ItemVentana): List<ItemVentana> =
-        Api.json.decodeFromString(listaItems, Api.enviar("POST", "/carrito", item, ItemVentana.serializer()))
+        Api.json.decodeFromString(listaItems, Api.enviar("POST", "/carrito", item, ItemVentana.serializer())).contadas()
 
     suspend fun cambiarCantidad(id: String, cantidad: Int): List<ItemVentana> =
-        Api.json.decodeFromString(listaItems, Api.enviar("PUT", "/carrito/$id/cantidad", CambioCantidad(cantidad), CambioCantidad.serializer()))
+        Api.json.decodeFromString(listaItems, Api.enviar("PUT", "/carrito/$id/cantidad", CambioCantidad(cantidad), CambioCantidad.serializer())).contadas()
 
-    suspend fun quitar(id: String): List<ItemVentana> = Api.json.decodeFromString(listaItems, Api.texto("DELETE", "/carrito/$id"))
+    suspend fun quitar(id: String): List<ItemVentana> = Api.json.decodeFromString(listaItems, Api.texto("DELETE", "/carrito/$id")).contadas()
 
     suspend fun solicitudes(): List<Solicitud> = Api.lista("/solicitudes", Solicitud.serializer())
 
+    /** Al enviarla, el backend vacía el carrito. */
     suspend fun enviarSolicitud(datos: NuevaSolicitud): Solicitud =
-        Api.json.decodeFromString(Solicitud.serializer(), Api.enviar("POST", "/solicitudes", datos, NuevaSolicitud.serializer()))
+        Api.json.decodeFromString(Solicitud.serializer(), Api.enviar("POST", "/solicitudes", datos, NuevaSolicitud.serializer())).also { unidadesCarrito = 0 }
 
     suspend fun elegirOferta(numero: Long, ofertaId: Long): Solicitud =
         Api.json.decodeFromString(Solicitud.serializer(), Api.texto("POST", "/solicitudes/$numero/ofertas/$ofertaId/elegir"))

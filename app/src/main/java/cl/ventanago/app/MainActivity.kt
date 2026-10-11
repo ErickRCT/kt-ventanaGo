@@ -19,7 +19,9 @@ import cl.ventanago.app.datos.Autenticacion
 import cl.ventanago.app.datos.CarritoLocal
 import cl.ventanago.app.notificaciones.Push
 import cl.ventanago.app.ui.PantallaLogin
+import cl.ventanago.app.ui.ModoTema
 import cl.ventanago.app.ui.TemaVentanaGo
+import cl.ventanago.app.ui.enModoOscuro
 import cl.ventanago.app.ui.navegacion.Panel
 import cl.ventanago.app.ui.navegacion.Pantalla
 import kotlinx.coroutines.delay
@@ -33,15 +35,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         CarritoLocal.iniciar(applicationContext)
         Push.crearCanal(applicationContext)
+        ModoTema.iniciar(applicationContext)
         // Al recrearse (p. ej. al girar) el intent es el mismo: la notificación ya se atendió.
         if (savedInstanceState == null) leerNotificacion(intent)
-        // Barras del sistema transparentes; los íconos son oscuros o claros según el modo del teléfono.
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
-        )
         setContent {
-            TemaVentanaGo {
+            val oscuro = enModoOscuro()
+            // Barras del sistema transparentes, con íconos claros u oscuros según el modo de la app.
+            LaunchedEffect(oscuro) {
+                val estilo = if (oscuro) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+                enableEdgeToEdge(statusBarStyle = estilo, navigationBarStyle = estilo)
+            }
+            TemaVentanaGo(oscuro) {
                 val autenticacion = remember { Autenticacion(applicationContext) }
                 val sesion = autenticacion.sesion
                 // Sin sesión la app abre en Diseñar ventana; el login se muestra solo cuando se necesita.

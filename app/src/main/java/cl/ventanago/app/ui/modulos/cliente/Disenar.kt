@@ -1,5 +1,6 @@
 package cl.ventanago.app.ui.modulos.cliente
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -136,6 +137,8 @@ fun PantallaDisenar(abrir: (Pantalla) -> Unit, conCuenta: Boolean = true) {
     }
 
     val elegida = pautas?.firstOrNull { it.pauta.pautaId == elegidaId }
+    // Configurando una ventana, atrás vuelve a la lista de tipos (en vez de salir de la pantalla).
+    BackHandler(enabled = elegida != null) { elegidaId = null }
     when {
         pautas == null && error != null -> EstadoError(error!!) { error = null; recarga++ }
         pautas == null -> EstadoCargando("Cargando el catálogo de ventanas…")
@@ -157,7 +160,6 @@ private fun SelectorPauta(pautas: List<PautaCliente>, alElegir: (PautaCliente) -
         modifier = Modifier.fillMaxSize(),
     ) {
         item {
-            Text("Diseña tu ventana", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text("Elige el tipo de ventana. Después ajustas medidas y colores, y puedes verla en tu pared.", color = Colores.gris)
             OutlinedTextField(
                 value = busqueda,

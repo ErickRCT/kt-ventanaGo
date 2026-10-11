@@ -82,7 +82,6 @@ fun PantallaProveedores(esAdmin: Boolean = false) {
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Proveedores", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(
                     if (esAdmin) "Revisa a los proveedores y marca como verificados a los que cumplan (RUT y trabajos comprobados)."
                     else "Empresas y maestros que trabajan en tu zona. Al pedir cotización puedes enviarla a todos o elegir algunos.",

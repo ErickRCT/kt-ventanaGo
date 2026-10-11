@@ -3,6 +3,12 @@ package cl.ventanago.app.ui.navegacion
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.automirrored.outlined.ViewList
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material.icons.filled.ViewInAr
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AddBox
 import androidx.compose.material.icons.outlined.AdminPanelSettings
@@ -25,8 +31,17 @@ import androidx.compose.material.icons.outlined.Window
 import androidx.compose.ui.graphics.vector.ImageVector
 import cl.ventanago.app.datos.Rol
 
-/** Pantallas del menú lateral (cada una es un destino de la navegación); las que aún no se migran ([disponible] = false) muestran un aviso. */
-enum class Pantalla(val titulo: String, val icono: ImageVector, val disponible: Boolean = true) {
+/**
+ * Pantallas del menú (cada una es un destino de la navegación); las que aún no se migran ([disponible] = false)
+ * muestran un aviso. [corto] e [iconoActivo]: cómo se ven en la barra inferior.
+ */
+enum class Pantalla(
+    val titulo: String,
+    val icono: ImageVector,
+    val corto: String = titulo,
+    val iconoActivo: ImageVector = icono,
+    val disponible: Boolean = true,
+) {
     INICIO("Inicio", Icons.Outlined.Home),
     CREAR_COTIZACION("Crear cotización", Icons.Outlined.AddBox),
     COTIZACIONES("Cotizaciones", Icons.AutoMirrored.Outlined.Assignment),
@@ -41,12 +56,12 @@ enum class Pantalla(val titulo: String, val icono: ImageVector, val disponible: 
     SERIES("Series", Icons.AutoMirrored.Outlined.ViewList),
 
     // Vistas de cliente y empresa, que el administrador también ve en el front web.
-    DISENAR_VENTANA("Diseñar ventana", Icons.Outlined.ViewInAr),
-    CARRITO("Carrito", Icons.Outlined.ShoppingCart),
-    MIS_COTIZACIONES("Mis cotizaciones", Icons.Outlined.History),
-    PROVEEDORES("Proveedores", Icons.Outlined.Storefront),
-    SOLICITUDES("Solicitudes", Icons.Outlined.Inbox),
-    MI_PERFIL("Mi perfil", Icons.Outlined.Badge),
+    DISENAR_VENTANA("Diseñar ventana", Icons.Outlined.ViewInAr, "Diseñar", Icons.Filled.ViewInAr),
+    CARRITO("Carrito", Icons.Outlined.ShoppingCart, iconoActivo = Icons.Filled.ShoppingCart),
+    MIS_COTIZACIONES("Mis cotizaciones", Icons.Outlined.History, "Cotizaciones", Icons.Filled.History),
+    PROVEEDORES("Proveedores", Icons.Outlined.Storefront, iconoActivo = Icons.Filled.Storefront),
+    SOLICITUDES("Solicitudes", Icons.Outlined.Inbox, iconoActivo = Icons.Filled.Inbox),
+    MI_PERFIL("Mi perfil", Icons.Outlined.Badge, iconoActivo = Icons.Filled.Badge),
 }
 
 /** [roles]: quienes ven el grupo en el menú. */
@@ -75,6 +90,9 @@ fun gruposDe(rol: Rol) = gruposMenu.filter { rol in it.roles }.map { g ->
 }
 
 fun Rol.puedeVer(p: Pantalla) = gruposDe(this).any { p in it.pantallas }
+
+/** Pestañas de la barra inferior: el cliente y la empresa navegan con ella; el administrador (null), con el menú lateral. */
+fun pestanasDe(rol: Rol): List<Pantalla>? = if (rol == Rol.ADMIN) null else gruposDe(rol).flatMap { it.pantallas }
 
 /** Pantalla con la que parte cada rol (como RUTA_INICIAL de la web). */
 fun pantallaInicial(rol: Rol) = when (rol) {

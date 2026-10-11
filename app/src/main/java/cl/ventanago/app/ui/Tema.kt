@@ -1,7 +1,14 @@
 package cl.ventanago.app.ui
 
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
@@ -11,7 +18,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.Font
@@ -19,6 +30,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import cl.ventanago.app.R
 
 /** Colores de la app con nombre según su uso; cada tema (claro u oscuro) tiene su versión. */
@@ -238,9 +250,49 @@ private val formas = Shapes(
     extraLarge = RoundedCornerShape(24.dp),
 )
 
-/** Tema de la app: sigue el modo claro u oscuro del teléfono. */
+/**
+ * Modo claro u oscuro elegido con el botón del encabezado (se guarda en el teléfono). Mientras no se elija,
+ * [oscuro] es null y la app sigue el modo del teléfono.
+ */
+object ModoTema {
+    private const val CLAVE = "tema_oscuro"
+    private lateinit var preferencias: SharedPreferences
+
+    var oscuro by mutableStateOf<Boolean?>(null)
+        private set
+
+    fun iniciar(context: Context) {
+        if (::preferencias.isInitialized) return
+        preferencias = context.getSharedPreferences("ventanago", Context.MODE_PRIVATE)
+        oscuro = if (preferencias.contains(CLAVE)) preferencias.getBoolean(CLAVE, false) else null
+    }
+
+    fun elegir(oscuro: Boolean) {
+        this.oscuro = oscuro
+        preferencias.edit { putBoolean(CLAVE, oscuro) }
+    }
+}
+
+/** true si la app se está mostrando en modo oscuro (el elegido o, si no hay, el del teléfono). */
 @Composable
-fun TemaVentanaGo(oscuro: Boolean = isSystemInDarkTheme(), contenido: @Composable () -> Unit) {
+fun enModoOscuro() = ModoTema.oscuro ?: isSystemInDarkTheme()
+
+/** Botón sol/luna que cambia entre modo claro y oscuro. */
+@Composable
+fun BotonTema(modifier: Modifier = Modifier, tinte: Color = Colores.textoSecundario) {
+    val oscuro = enModoOscuro()
+    IconButton(onClick = { ModoTema.elegir(!oscuro) }, modifier = modifier) {
+        Icon(
+            if (oscuro) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+            contentDescription = if (oscuro) "Cambiar a modo claro" else "Cambiar a modo oscuro",
+            tint = tinte,
+        )
+    }
+}
+
+/** Tema de la app: claro u oscuro según [ModoTema]. */
+@Composable
+fun TemaVentanaGo(oscuro: Boolean = enModoOscuro(), contenido: @Composable () -> Unit) {
     val paleta = if (oscuro) paletaOscura else paletaClara
     CompositionLocalProvider(LocalPaleta provides paleta) {
         MaterialTheme(

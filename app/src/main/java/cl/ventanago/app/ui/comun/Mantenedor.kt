@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -105,7 +106,7 @@ fun <T> Mantenedor(
         Column(Modifier.fillMaxSize()) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)) {
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text(titulo, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Spacer(Modifier.weight(1f))
                     items?.let {
                         Text(
                             if (busqueda.isBlank()) "${it.size} registros" else "${filtrados.size} de ${it.size}",
@@ -118,7 +119,7 @@ fun <T> Mantenedor(
                 OutlinedTextField(
                     value = busqueda,
                     onValueChange = { busqueda = it },
-                    placeholder = { Text("Buscar") },
+                    placeholder = { Text("Buscar en ${titulo.lowercase()}") },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                     trailingIcon = {
                         if (busqueda.isNotEmpty()) {

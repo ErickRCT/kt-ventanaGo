@@ -150,7 +150,6 @@ fun PantallaMiPerfil() {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Mi perfil", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(
                 "Así te ven los clientes al comparar ofertas. Te llegan las solicitudes de tus comunas y servicios." +
                     if (cargado?.verificado == true) " Tu perfil está verificado." else "",

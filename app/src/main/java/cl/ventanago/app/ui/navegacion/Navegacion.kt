@@ -9,6 +9,9 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 const val RUTA_SOLICITUD_EMPRESA = "solicitud/{numero}"
 const val ARG_NUMERO = "numero"
 
+/** Avisos de la cuenta (la campana del encabezado). */
+const val RUTA_AVISOS = "avisos"
+
 fun rutaSolicitudEmpresa(numero: Long) = "solicitud/$numero"
 
 /** Pantalla del menú que corresponde a una ruta (el detalle de una solicitud cuenta como Solicitudes). */

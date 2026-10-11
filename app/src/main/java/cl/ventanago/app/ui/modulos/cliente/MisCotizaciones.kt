@@ -104,7 +104,6 @@ fun PantallaMisCotizaciones(abrir: (Pantalla) -> Unit, destacar: Long? = null, v
             }
             LazyColumn(state = estadoLista, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
                 item {
-                    Text("Mis cotizaciones", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Text("Compara las ofertas, conversa con los proveedores y elige la que más te convenga. Desliza hacia abajo para actualizar.", color = Colores.gris)
                 }
                 items(lista, key = { it.numero }) { s ->

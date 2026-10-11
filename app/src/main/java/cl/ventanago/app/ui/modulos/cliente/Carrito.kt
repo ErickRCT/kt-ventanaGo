@@ -171,7 +171,6 @@ private fun FormularioCarrito(vm: CarritoViewModel, lista: List<ItemVentana>, ab
             }
             Text("Cuéntanos qué necesitas y los proveedores de tu zona te enviarán sus ofertas.", color = Colores.gris)
         } else {
-            Text("Tu carrito", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             val unidades = lista.sumOf { it.cantidad }
             Text("$unidades ${if (unidades == 1) "ventana" else "ventanas"}. Los proveedores de tu zona te enviarán sus ofertas.", color = Colores.gris)
         }

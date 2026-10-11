@@ -99,7 +99,6 @@ fun PantallaSolicitudesEmpresa(esAdmin: Boolean, vm: SolicitudesEmpresaViewModel
             val visibles = lista.filter { coincide(it, filtro) }
             LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
                 item {
-                    Text("Solicitudes", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Text(
                         if (esAdmin) "Todas las solicitudes del mercado y sus ofertas."
                         else "Pedidos de clientes de tu zona. Envía tu oferta: el cliente compara y elige.",

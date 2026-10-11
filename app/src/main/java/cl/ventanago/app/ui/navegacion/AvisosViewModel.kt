@@ -17,8 +17,24 @@ import kotlinx.coroutines.withTimeoutOrNull
 class AvisosViewModel : ModeloBase() {
     var avisos by mutableStateOf<List<Aviso>>(emptyList())
         private set
+    /** false hasta la primera respuesta del backend (para mostrar "Cargando…" en vez de "Sin avisos"). */
+    var cargados by mutableStateOf(false)
+        private set
+    var refrescando by mutableStateOf(false)
+        private set
 
     val sinLeer get() = avisos.count { !it.leido }
+
+    private suspend fun traer() {
+        try {
+            avisos = ClienteApi.avisos().sortedByDescending { it.fecha }
+            cargados = true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // Sin conexión: se reintenta en el próximo ciclo.
+        }
+    }
 
     /**
      * Mientras la app está a la vista se revisan cada minuto (la web, cada 30 s), o apenas llega una notificación
@@ -26,14 +42,18 @@ class AvisosViewModel : ModeloBase() {
      */
     suspend fun sondear() {
         while (true) {
-            try {
-                avisos = ClienteApi.avisos().sortedByDescending { it.fecha }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                // Sin conexión: se reintenta en el próximo ciclo.
-            }
+            traer()
             withTimeoutOrNull(60_000) { Push.llegadas.first() }
+        }
+    }
+
+    /** Al deslizar hacia abajo en la pantalla de avisos. */
+    fun refrescar() {
+        if (refrescando) return
+        viewModelScope.launch {
+            refrescando = true
+            traer()
+            refrescando = false
         }
     }
 
