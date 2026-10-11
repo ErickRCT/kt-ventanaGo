@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -36,6 +35,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -70,6 +70,9 @@ import cl.ventanago.app.ui.Colores
 
 /** Muestra un mensaje breve (snackbar) desde cualquier pantalla. */
 val LocalAvisos = staticCompositionLocalOf<(String) -> Unit> { {} }
+
+/** Mensaje breve con un botón (p. ej. "Deshacer"): [accion] se ejecuta si se toca antes de que desaparezca. */
+val LocalAvisoConAccion = staticCompositionLocalOf<(mensaje: String, boton: String, accion: () -> Unit) -> Unit> { { _, _, _ -> } }
 
 @Composable
 fun CampoTexto(
@@ -327,13 +330,8 @@ fun EstadoCargando(mensaje: String = "Cargando…") {
         CircularProgressIndicator()
         Spacer(Modifier.height(16.dp))
         Text(mensaje, color = Colores.gris, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "Si el servidor estaba inactivo, la primera carga puede tardar hasta un minuto.",
-            style = MaterialTheme.typography.bodySmall,
-            color = Colores.gris,
-            textAlign = TextAlign.Center,
-        )
+        Spacer(Modifier.height(16.dp))
+        AvisoServidorLento()
     }
 }
 

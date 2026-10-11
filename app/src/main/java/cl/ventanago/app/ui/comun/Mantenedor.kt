@@ -144,7 +144,7 @@ fun <T> Mantenedor(
                     error = null
                     recarga++
                 }
-                items == null -> EstadoCargando()
+                items == null -> EsqueletoLista("Cargando…", filas = 6, conImagen = false)
                 else -> PullToRefreshBox(
                     isRefreshing = refrescando,
                     onRefresh = {

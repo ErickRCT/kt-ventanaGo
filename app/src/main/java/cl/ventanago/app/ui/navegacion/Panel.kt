@@ -25,8 +25,10 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -60,6 +62,7 @@ import cl.ventanago.app.datos.rol
 import cl.ventanago.app.notificaciones.Push
 import cl.ventanago.app.ui.Colores
 import cl.ventanago.app.ui.comun.EstadoMensaje
+import cl.ventanago.app.ui.comun.LocalAvisoConAccion
 import cl.ventanago.app.ui.comun.LocalAvisos
 import cl.ventanago.app.ui.modulos.PantallaClientes
 import cl.ventanago.app.ui.modulos.PantallaColores
@@ -191,7 +194,14 @@ fun Panel(
         alAtenderNotificacion()
     }
 
-    CompositionLocalProvider(LocalAvisos provides { mensaje -> alcance.launch { snackbar.showSnackbar(mensaje) } }) {
+    CompositionLocalProvider(
+        LocalAvisos provides { mensaje -> alcance.launch { snackbar.showSnackbar(mensaje) } },
+        LocalAvisoConAccion provides { mensaje, boton, accion ->
+            alcance.launch {
+                if (snackbar.showSnackbar(mensaje, actionLabel = boton, duration = SnackbarDuration.Long) == SnackbarResult.ActionPerformed) accion()
+            }
+        },
+    ) {
         val contenido = @Composable {
             Scaffold(
                 topBar = {
@@ -238,7 +248,12 @@ fun Panel(
                             Contenido(p, sesion, rol, nombre, email, navegacion, entradaPantalla, alPedirIngreso)
                         }
                     }
-                    composable(RUTA_SOLICITUD_EMPRESA, arguments = listOf(navArgument(ARG_NUMERO) { type = NavType.LongType })) { e ->
+                    composable(
+                        RUTA_SOLICITUD_EMPRESA,
+                        arguments = listOf(navArgument(ARG_NUMERO) { type = NavType.LongType }),
+                        enterTransition = { entraDesdeLaDerecha() },
+                        popExitTransition = { saleHaciaLaDerecha() },
+                    ) { e ->
                         PantallaDetalleSolicitudEmpresa(
                             numero = e.arguments?.getLong(ARG_NUMERO) ?: 0,
                             esAdmin = rol == Rol.ADMIN,
@@ -246,8 +261,13 @@ fun Panel(
                             alVolver = { navegacion.popBackStack() },
                         )
                     }
-                    composable(RUTA_AVISOS) { PantallaAvisos(modeloAvisos, alAbrir = ::abrirSolicitud) }
-                    composable(RUTA_MI_SOLICITUD, arguments = listOf(navArgument(ARG_NUMERO) { type = NavType.LongType })) { e ->
+                    composable(RUTA_AVISOS, enterTransition = { entraDesdeLaDerecha() }, popExitTransition = { saleHaciaLaDerecha() }) { PantallaAvisos(modeloAvisos, alAbrir = ::abrirSolicitud) }
+                    composable(
+                        RUTA_MI_SOLICITUD,
+                        arguments = listOf(navArgument(ARG_NUMERO) { type = NavType.LongType }),
+                        enterTransition = { entraDesdeLaDerecha() },
+                        popExitTransition = { saleHaciaLaDerecha() },
+                    ) { e ->
                         PantallaDetalleCotizacion(numero = e.arguments?.getLong(ARG_NUMERO) ?: 0, vm = modeloDelGrafo(navegacion, e))
                     }
                 }

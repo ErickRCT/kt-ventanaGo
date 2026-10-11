@@ -42,7 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cl.ventanago.app.datos.Aviso
 import cl.ventanago.app.ui.Colores
-import cl.ventanago.app.ui.comun.EstadoCargando
+import cl.ventanago.app.ui.comun.EsqueletoLista
 import cl.ventanago.app.ui.comun.EstadoMensaje
 import cl.ventanago.app.ui.comun.fechaHoraCorta
 
@@ -56,7 +56,7 @@ fun PantallaAvisos(modelo: AvisosViewModel, alAbrir: (Long?) -> Unit) {
     DisposableEffect(modelo) { onDispose { modelo.marcarLeidos() } }
     val avisos = modelo.avisos
     when {
-        !modelo.cargados && avisos.isEmpty() -> EstadoCargando("Cargando tus avisos…")
+        !modelo.cargados && avisos.isEmpty() -> EsqueletoLista("Cargando tus avisos…", filas = 6)
         else -> PullToRefreshBox(isRefreshing = modelo.refrescando, onRefresh = modelo::refrescar, modifier = Modifier.fillMaxSize()) {
             if (avisos.isEmpty()) {
                 EstadoMensaje(

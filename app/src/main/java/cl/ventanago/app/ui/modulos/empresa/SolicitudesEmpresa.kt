@@ -33,7 +33,7 @@ import cl.ventanago.app.datos.nombreEstadoSolicitud
 import cl.ventanago.app.datos.nombreServicio
 import cl.ventanago.app.datos.pesos
 import cl.ventanago.app.ui.Colores
-import cl.ventanago.app.ui.comun.EstadoCargando
+import cl.ventanago.app.ui.comun.EsqueletoLista
 import cl.ventanago.app.ui.comun.EstadoError
 import cl.ventanago.app.ui.comun.EstadoMensaje
 import cl.ventanago.app.ui.comun.MostrarAvisos
@@ -94,7 +94,7 @@ fun PantallaSolicitudesEmpresa(esAdmin: Boolean, vm: SolicitudesEmpresaViewModel
     val lista = vm.solicitudes
     when {
         lista == null && vm.error != null -> EstadoError(vm.error!!) { vm.reintentar() }
-        lista == null -> EstadoCargando("Cargando solicitudes…")
+        lista == null -> EsqueletoLista("Cargando solicitudes…", conImagen = false)
         else -> PullToRefreshBox(isRefreshing = vm.refrescando, onRefresh = { vm.cargar(manual = true) }, modifier = Modifier.fillMaxSize()) {
             val visibles = lista.filter { coincide(it, filtro) }
             LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {

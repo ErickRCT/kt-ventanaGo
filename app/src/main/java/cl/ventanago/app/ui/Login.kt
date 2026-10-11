@@ -1,8 +1,10 @@
 package cl.ventanago.app.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,8 +17,10 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -24,11 +28,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Pin
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -36,6 +39,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -48,6 +52,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -55,10 +60,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -66,6 +76,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import cl.ventanago.app.R
 import cl.ventanago.app.datos.Autenticacion
 import cl.ventanago.app.datos.CarritoLocal
@@ -101,6 +112,14 @@ fun PantallaLogin(autenticacion: Autenticacion, motivo: String? = null, alVolver
     var lento by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(autenticacion.aviso) }
     var info by remember { mutableStateOf<String?>(null) }
+    // Segundos que faltan para poder pedir otro código (evita pedir varios seguidos).
+    var esperaReenvio by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(esperaReenvio) {
+        if (esperaReenvio > 0) {
+            delay(1000)
+            esperaReenvio--
+        }
+    }
 
     // Si el servidor de Render estaba dormido, se avisa que la primera respuesta tarda.
     LaunchedEffect(cargando) {
@@ -141,6 +160,7 @@ fun PantallaLogin(autenticacion: Autenticacion, motivo: String? = null, alVolver
             ClienteApi.solicitarCodigo(email.trim())
             codigoEnviado = true
             codigo = ""
+            esperaReenvio = 60
             info = "Te enviamos un código de 6 dígitos a ${email.trim()}. Revisa también la carpeta de spam."
         }
     }
@@ -229,16 +249,7 @@ fun PantallaLogin(autenticacion: Autenticacion, motivo: String? = null, alVolver
                     }
 
                     if (esCliente && IngresoGoogle.disponible) {
-                        OutlinedButton(
-                            onClick = { ejecutar { IngresoGoogle.ingresar(context)?.let { entrar(it) } } },
-                            enabled = !cargando,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                        ) {
-                            Text("G", fontWeight = FontWeight.Bold, color = Color(0xFF4285F4), style = MaterialTheme.typography.titleLarge)
-                            Text("   Continuar con Google")
-                        }
+                        BotonGoogle(enabled = !cargando) { ejecutar { IngresoGoogle.ingresar(context)?.let { entrar(it) } } }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             HorizontalDivider(Modifier.weight(1f))
                             Text("  o con tu correo  ", style = MaterialTheme.typography.bodySmall, color = Colores.gris)
@@ -263,24 +274,18 @@ fun PantallaLogin(autenticacion: Autenticacion, motivo: String? = null, alVolver
 
                     if (esCliente) {
                         if (codigoEnviado) {
-                            OutlinedTextField(
-                                value = codigo,
-                                onValueChange = { codigo = it.filter(Char::isDigit).take(6) },
-                                label = { Text("Código de 6 dígitos") },
-                                leadingIcon = { Icon(Icons.Outlined.Pin, contentDescription = null) },
-                                singleLine = true,
-                                enabled = !cargando,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
-                                keyboardActions = KeyboardActions(onDone = { verificar() }),
-                                modifier = Modifier.fillMaxWidth(),
-                            )
+                            CampoCodigo(codigo, enabled = !cargando) {
+                                codigo = it
+                                // Con los 6 dígitos se entra solo, sin tener que tocar el botón.
+                                if (it.length == 6) verificar()
+                            }
                         }
                         Boton(if (codigoEnviado) "Ingresar" else "Recibir código por correo", cargando) {
                             if (codigoEnviado) verificar() else enviarCodigo()
                         }
                         if (codigoEnviado) {
-                            TextButton(onClick = { enviarCodigo() }, enabled = !cargando, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                                Text("Reenviar código")
+                            TextButton(onClick = { enviarCodigo() }, enabled = !cargando && esperaReenvio == 0, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                                Text(if (esperaReenvio > 0) "Reenviar código en ${esperaReenvio / 60}:${"%02d".format(esperaReenvio % 60)}" else "Reenviar código")
                             }
                         } else {
                             Text(
@@ -340,4 +345,67 @@ private fun Boton(texto: String, cargando: Boolean, alPulsar: () -> Unit) {
         if (cargando) CircularProgressIndicator(Modifier.size(22.dp), color = LocalContentColor.current, strokeWidth = 2.dp)
         else Text(texto)
     }
+}
+
+/** "Continuar con Google" con el logo y los colores de la guía de marca de Google (versión clara u oscura). */
+@Composable
+private fun BotonGoogle(enabled: Boolean, alPulsar: () -> Unit) {
+    val oscuro = enModoOscuro()
+    OutlinedButton(
+        onClick = alPulsar,
+        enabled = enabled,
+        border = BorderStroke(1.dp, if (oscuro) Color(0xFF8E918F) else Color(0xFF747775)),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = if (oscuro) Color(0xFF131314) else Color.White,
+            contentColor = if (oscuro) Color(0xFFE3E3E3) else Color(0xFF1F1F1F),
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp),
+    ) {
+        Image(painterResource(R.drawable.ic_google), contentDescription = null, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(12.dp))
+        // La guía pide Roboto Medium: la fuente del sistema en Android.
+        Text("Continuar con Google", fontFamily = FontFamily.Default, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+    }
+}
+
+/** El código de 6 dígitos en casillas, una por dígito; el teclado numérico se abre solo. */
+@Composable
+private fun CampoCodigo(codigo: String, enabled: Boolean, alCambiar: (String) -> Unit) {
+    val foco = remember { FocusRequester() }
+    LaunchedEffect(Unit) { foco.requestFocus() }
+    BasicTextField(
+        value = codigo,
+        onValueChange = { nuevo -> alCambiar(nuevo.filter(Char::isDigit).take(6)) },
+        enabled = enabled,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(foco)
+            .semantics { contentDescription = "Código de 6 dígitos" },
+        decorationBox = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                repeat(6) { i ->
+                    val digito = codigo.getOrNull(i)
+                    val actual = i == codigo.length && enabled
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                            .border(
+                                if (actual) 2.dp else 1.dp,
+                                if (actual) Colores.azul else Colores.borde,
+                                MaterialTheme.shapes.medium,
+                            )
+                            .background(Colores.superficie, MaterialTheme.shapes.medium),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(digito?.toString().orEmpty(), style = MaterialTheme.typography.headlineSmall, color = Colores.textoFuerte)
+                    }
+                }
+            }
+        },
+    )
 }

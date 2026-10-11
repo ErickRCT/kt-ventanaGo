@@ -181,6 +181,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.ofertas(s: Solicitud,
         items(ordenadas(validas, orden), key = { "oferta-${it.id}" }) { o ->
             TarjetaOferta(
                 o, s, sellosDe(o, validas),
+                modifier = Modifier.animateItem(),
                 alChat = { vm.chat = o to (o.estado != "DESCARTADA") },
                 alVerProveedor = { vm.proveedor = it },
                 alElegir = { vm.porElegir = s to o },
@@ -247,6 +248,7 @@ private fun TarjetaOferta(
     alChat: () -> Unit,
     alVerProveedor: (Long) -> Unit,
     alElegir: (() -> Unit)?,
+    modifier: Modifier = Modifier,
 ) {
     var detalle by remember { mutableStateOf(false) }
     val destacada = sellos.masBarata || o.estado == "ELEGIDA"
@@ -254,6 +256,7 @@ private fun TarjetaOferta(
         colors = CardDefaults.cardColors(containerColor = if (o.estado == "ELEGIDA") Colores.exitoFondo else Colores.superficie),
         border = BorderStroke(if (destacada) 2.dp else 1.dp, if (destacada) Colores.exito else Colores.borde),
         shape = MaterialTheme.shapes.large,
+        modifier = modifier,
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (sellos.masBarata || sellos.masRapida || sellos.mejorValorada || o.estado == "ELEGIDA") {

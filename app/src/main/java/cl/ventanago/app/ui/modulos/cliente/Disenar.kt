@@ -2,6 +2,11 @@ package cl.ventanago.app.ui.modulos.cliente
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -67,7 +72,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -95,7 +102,7 @@ import cl.ventanago.app.datos.mensaje
 import cl.ventanago.app.datos.pesos
 import cl.ventanago.app.ui.Colores
 import cl.ventanago.app.ui.comun.CampoTexto
-import cl.ventanago.app.ui.comun.EstadoCargando
+import cl.ventanago.app.ui.comun.EsqueletoCuadricula
 import cl.ventanago.app.ui.comun.EstadoError
 import cl.ventanago.app.ui.comun.EstadoVacio
 import cl.ventanago.app.ui.comun.ImagenCatalogo
@@ -116,13 +123,13 @@ import cl.ventanago.app.ventana.limitesDeModelo
 import cl.ventanago.app.ventana.medidasCm
 import cl.ventanago.app.ventana.modeloDePauta
 import cl.ventanago.app.ventana.problemasDePrecio
+import kotlin.math.roundToLong
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.roundToLong
 
 /** Pauta lista para el cliente: con su serie y la forma y hojas deducidas para el dibujo. */
 class PautaCliente(val pauta: Pauta, val serie: String, val hojas: Int, val modelo: ModeloVentana)
@@ -190,7 +197,7 @@ fun PantallaDisenar(abrir: (Pantalla) -> Unit, conCuenta: Boolean = true) {
     BackHandler(enabled = elegida != null) { elegidaId = null }
     when {
         pautas == null && error != null -> EstadoError(error!!) { error = null; recarga++ }
-        pautas == null -> EstadoCargando("Cargando el catálogo de ventanas…")
+        pautas == null -> EsqueletoCuadricula("Cargando el catálogo de ventanas…")
         elegida == null -> SelectorPauta(pautas!!) { elegidaId = it.pauta.pautaId }
         else -> ConfigurarVentana(elegida, alCambiarPauta = { elegidaId = null }, abrir = abrir, conCuenta = conCuenta)
     }
@@ -302,6 +309,7 @@ private fun ConfigurarVentana(elegida: PautaCliente, alCambiarPauta: () -> Unit,
     val context = LocalContext.current
     val alcance = rememberCoroutineScope()
     val pauta = elegida.pauta
+    val vibracion = LocalHapticFeedback.current
 
     var colores by remember { mutableStateOf<List<ColorVentana>?>(null) }
     var vidrios by remember { mutableStateOf<List<Vidrio>?>(null) }
@@ -412,6 +420,7 @@ private fun ConfigurarVentana(elegida: PautaCliente, alCambiarPauta: () -> Unit,
                     ),
                 )
                 recienAgregada = carrito.sumOf { it.cantidad }
+                vibracion.performHapticFeedback(HapticFeedbackType.Confirm)
                 validar = false
             } catch (e: CancellationException) {
                 throw e
@@ -733,7 +742,17 @@ private fun BarraPrecio(
                                     Text("  Calculando precio…", style = MaterialTheme.typography.bodyMedium, color = Colores.gris)
                                 }
                                 is EstadoPrecio.Listo -> {
-                                    Text(pesos(precio.unitario * precio.cantidad), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Colores.textoFuerte)
+                                    // El total sube o baja con una transición al cambiar medidas, colores o cantidad.
+                                    AnimatedContent(
+                                        precio.unitario * precio.cantidad,
+                                        transitionSpec = {
+                                            val sube = targetState > initialState
+                                            (slideInVertically { if (sube) it else -it } + fadeIn()) togetherWith (slideOutVertically { if (sube) -it else it } + fadeOut())
+                                        },
+                                        label = "precio",
+                                    ) { total ->
+                                        Text(pesos(total), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Colores.textoFuerte)
+                                    }
                                     Text(
                                         if (precio.cantidad > 1) "${precio.cantidad} × ${pesos(precio.unitario)} · con IVA" else "Referencial, con IVA",
                                         style = MaterialTheme.typography.bodySmall,

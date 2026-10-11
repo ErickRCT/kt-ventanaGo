@@ -186,6 +186,10 @@ private fun esquemaClaro(p: Paleta) = lightColorScheme(
     error = p.error,
     errorContainer = p.errorFondo,
     onErrorContainer = p.errorTexto,
+    // Avisos breves (snackbar): fondo oscuro con el botón en azul claro.
+    inverseSurface = Color(0xFF1A2332),
+    inverseOnSurface = Color(0xFFE3E8EF),
+    inversePrimary = Color(0xFF9DB9EA),
 )
 
 private fun esquemaOscuro(p: Paleta) = darkColorScheme(
@@ -214,6 +218,9 @@ private fun esquemaOscuro(p: Paleta) = darkColorScheme(
     onError = Color(0xFF4A0F0F),
     errorContainer = p.errorFondo,
     onErrorContainer = p.errorTexto,
+    inverseSurface = Color(0xFFE3E8EF),
+    inverseOnSurface = Color(0xFF1A2332),
+    inversePrimary = Color(0xFF2B4C7E),
 )
 
 /** Inter (variable): un solo archivo con todos los grosores. */

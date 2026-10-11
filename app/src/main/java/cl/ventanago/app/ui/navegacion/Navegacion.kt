@@ -1,5 +1,12 @@
 package cl.ventanago.app.ui.navegacion
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 
@@ -45,3 +52,10 @@ fun NavController.abrir(p: Pantalla) = navigate(p.name) {
     popUpTo(p.name) { inclusive = true }
     launchSingleTop = true
 }
+
+/** Las pantallas internas (detalle, avisos) entran desde la derecha y al volver salen hacia ella. */
+fun AnimatedContentTransitionScope<NavBackStackEntry>.entraDesdeLaDerecha(): EnterTransition =
+    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(250)) + fadeIn(tween(250))
+
+fun AnimatedContentTransitionScope<NavBackStackEntry>.saleHaciaLaDerecha(): ExitTransition =
+    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(250)) + fadeOut(tween(250))

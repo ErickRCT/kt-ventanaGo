@@ -171,8 +171,15 @@ class CarritoViewModel(val conCuenta: Boolean, emailCuenta: String) : ModeloBase
         if (conCuenta) itemsCuenta = ClienteApi.cambiarCantidad(item.id!!, cantidad) else CarritoLocal.cambiarCantidad(item.id!!, cantidad)
     }
 
-    fun quitar(item: ItemVentana) = accion("Quitando…") {
+    /** Quita la ventana; [alQuitar] se llama si se pudo (la pantalla ofrece deshacer). */
+    fun quitar(item: ItemVentana, alQuitar: () -> Unit = {}) = accion("Quitando…") {
         if (conCuenta) itemsCuenta = ClienteApi.quitar(item.id!!) else CarritoLocal.quitar(item.id!!)
+        alQuitar()
+    }
+
+    /** Deshacer: vuelve a agregar una ventana recién quitada (queda al final del carrito). */
+    fun restaurar(item: ItemVentana) = accion("Restaurando…") {
+        if (conCuenta) itemsCuenta = ClienteApi.agregar(item.copy(id = null)) else CarritoLocal.agregar(item)
     }
 
     fun alternarServicio(valor: String) {

@@ -33,7 +33,6 @@ import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Handyman
 import androidx.compose.material.icons.outlined.ShoppingCart
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -43,6 +42,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -70,9 +70,10 @@ import cl.ventanago.app.datos.pesos
 import cl.ventanago.app.ui.Colores
 import cl.ventanago.app.ui.comun.Bloque
 import cl.ventanago.app.ui.comun.CampoTexto
-import cl.ventanago.app.ui.comun.EstadoCargando
+import cl.ventanago.app.ui.comun.EsqueletoLista
 import cl.ventanago.app.ui.comun.EstadoError
 import cl.ventanago.app.ui.comun.EstadoMensaje
+import cl.ventanago.app.ui.comun.LocalAvisoConAccion
 import cl.ventanago.app.ui.comun.MensajeError
 import cl.ventanago.app.ui.comun.Opciones
 import cl.ventanago.app.ui.modulos.mercado.DialogoProveedor
@@ -108,7 +109,7 @@ fun PantallaCarrito(
     val lista = vm.lista
     when {
         lista == null && vm.errorCarga != null -> EstadoError(vm.errorCarga!!) { vm.cargar() }
-        lista == null -> EstadoCargando("Cargando tu carrito…")
+        lista == null -> EsqueletoLista("Cargando tu carrito…", filas = 2)
         !vm.conVentanas && !vm.sinVentanas -> CarritoVacio(abrir, vm::pedirServicio)
         else -> FormularioCarrito(vm, lista, abrir) {
             if (!vm.enviar()) alPedirIngreso("Para enviar tu solicitud, ingresa con tu correo. Tus ventanas y tus datos quedan guardados.")
@@ -222,6 +223,7 @@ private fun FormularioCarrito(vm: CarritoViewModel, lista: List<ItemVentana>, ab
 @Composable
 private fun VentanasDelCarrito(vm: CarritoViewModel, lista: List<ItemVentana>, abrir: (Pantalla) -> Unit) {
     val libre = vm.ocupado == null
+    val avisoConAccion = LocalAvisoConAccion.current
     lista.forEach { item ->
         Card(colors = CardDefaults.cardColors(containerColor = Colores.superficie), border = BorderStroke(1.dp, Colores.borde), shape = RoundedCornerShape(12.dp)) {
             Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -240,7 +242,10 @@ private fun VentanasDelCarrito(vm: CarritoViewModel, lista: List<ItemVentana>, a
                             Icon(Icons.Filled.Add, contentDescription = "Aumentar cantidad")
                         }
                         Spacer(Modifier.weight(1f))
-                        IconButton(onClick = { vm.quitar(item) }, enabled = libre) {
+                        IconButton(
+                            onClick = { vm.quitar(item) { avisoConAccion("Quitaste ${item.descripcion} del carrito", "Deshacer") { vm.restaurar(item) } } },
+                            enabled = libre,
+                        ) {
                             Icon(Icons.Outlined.DeleteOutline, contentDescription = "Quitar del carrito", tint = Colores.error)
                         }
                     }

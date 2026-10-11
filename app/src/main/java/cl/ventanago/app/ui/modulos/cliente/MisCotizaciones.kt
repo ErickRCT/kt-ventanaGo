@@ -43,7 +43,7 @@ import cl.ventanago.app.datos.ofertaElegida
 import cl.ventanago.app.datos.ofertasValidas
 import cl.ventanago.app.datos.pesos
 import cl.ventanago.app.ui.Colores
-import cl.ventanago.app.ui.comun.EstadoCargando
+import cl.ventanago.app.ui.comun.EsqueletoLista
 import cl.ventanago.app.ui.comun.EstadoError
 import cl.ventanago.app.ui.comun.EstadoMensaje
 import cl.ventanago.app.ui.comun.MostrarAvisos
@@ -62,7 +62,7 @@ fun PantallaMisCotizaciones(abrir: (Pantalla) -> Unit, vm: MisCotizacionesViewMo
     val lista = vm.solicitudes
     when {
         lista == null && vm.error != null -> EstadoError(vm.error!!) { vm.reintentar() }
-        lista == null -> EstadoCargando("Cargando tus cotizaciones…")
+        lista == null -> EsqueletoLista("Cargando tus cotizaciones…", filas = 4)
         lista.isEmpty() -> EstadoMensaje(
             Icons.Outlined.History, "Aún no has pedido cotizaciones",
             "Cuando envíes tu carrito, los proveedores de tu zona te harán ofertas y las verás aquí.", "Diseñar ventana",
@@ -72,16 +72,17 @@ fun PantallaMisCotizaciones(abrir: (Pantalla) -> Unit, vm: MisCotizacionesViewMo
                 item {
                     Text("Toca una solicitud para comparar sus ofertas y elegir. Desliza hacia abajo para actualizar.", color = Colores.gris)
                 }
-                items(lista, key = { it.numero }) { s -> TarjetaSolicitud(s) { alAbrir(s.numero) } }
+                items(lista, key = { it.numero }) { s -> TarjetaSolicitud(s, Modifier.animateItem()) { alAbrir(s.numero) } }
             }
         }
     }
 }
 
 @Composable
-private fun TarjetaSolicitud(s: Solicitud, alTocar: () -> Unit) {
+private fun TarjetaSolicitud(s: Solicitud, modifier: Modifier = Modifier, alTocar: () -> Unit) {
     Card(
         onClick = alTocar,
+        modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = Colores.superficie),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = MaterialTheme.shapes.large,
