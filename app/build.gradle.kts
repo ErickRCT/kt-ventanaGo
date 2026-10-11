@@ -20,8 +20,8 @@ android {
         applicationId = "cl.ventanago.movil"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "0.10.0"
+        versionCode = 11
+        versionName = "0.11.0"
 
         // Mismo backend (Render) y misma carpeta de imágenes (front en Vercel) que la versión web.
         // Para probar contra un backend local: ./gradlew assembleRelease -Pventanago.apiUrl=http://192.168.1.10:7099
@@ -118,4 +118,6 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.6.2")
     implementation("androidx.camera:camera-lifecycle:1.6.2")
     implementation("androidx.camera:camera-view:1.6.2")
+
+    testImplementation("junit:junit:4.13.2")
 }

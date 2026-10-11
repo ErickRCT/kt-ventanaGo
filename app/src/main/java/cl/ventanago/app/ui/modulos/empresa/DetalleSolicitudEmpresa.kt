@@ -177,7 +177,7 @@ private fun ContenidoDetalle(s: Solicitud, esAdmin: Boolean, vm: OfertaViewModel
         } else {
             Bloque(if (s.items.isEmpty()) "Trabajo pedido" else "Ventanas pedidas", espacio = 8.dp) {
                 if (s.items.isEmpty()) Text(s.observaciones.orEmpty())
-                s.items.forEach { FilaItem(it, tamano = 48.dp, conObservaciones = true, sufijoPrecio = "") }
+                s.items.forEach { FilaItem(it, tamano = 48.dp, conObservaciones = true, sufijoPrecio = "", enCm = false) }
             }
         }
         Spacer(Modifier.height(24.dp))
@@ -264,7 +264,7 @@ private fun FormularioOferta(vm: OfertaViewModel, alEnviar: () -> Unit) {
             vm.borradores.forEach { b ->
                 Surface(color = Colores.fondo, shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, Colores.borde)) {
                     Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        FilaItem(b.original, tamano = 48.dp, conObservaciones = true, sufijoPrecio = "")
+                        FilaItem(b.original, tamano = 48.dp, conObservaciones = true, sufijoPrecio = "", enCm = false)
                         if (accion == "MODIFICADA") {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 CampoTexto("Ancho", b.ancho, { b.ancho = soloDigitos(it).take(5) }, Modifier.weight(1f), teclado = KeyboardType.Number, ayuda = "mm")
@@ -349,6 +349,6 @@ private fun FormularioOferta(vm: OfertaViewModel, alEnviar: () -> Unit) {
 private fun ResumenOferta(o: Oferta) {
     o.total?.let { Text("Total: ${pesos(it)}" + (o.plazoDias?.let { d -> " · $d días hábiles" } ?: ""), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Colores.textoFuerte) }
     o.mensaje?.takeIf { it.isNotBlank() }?.let { Text("“$it”", style = MaterialTheme.typography.bodyMedium) }
-    o.items.forEach { FilaItem(it, tamano = 48.dp, conObservaciones = true, sufijoPrecio = "") }
+    o.items.forEach { FilaItem(it, tamano = 48.dp, conObservaciones = true, sufijoPrecio = "", enCm = false) }
     Text("Enviada el ${fechaLegible(o.fecha?.take(10))}", style = MaterialTheme.typography.bodySmall, color = Colores.gris)
 }

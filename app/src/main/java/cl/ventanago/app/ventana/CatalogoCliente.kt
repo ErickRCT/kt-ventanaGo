@@ -48,6 +48,11 @@ fun hojasDePauta(pauta: Pauta): Int {
 const val MIN_MM = 300
 const val MAX_CANTIDAD = 99
 
+/** Milímetros en centímetros, como los ve el cliente: 1200 → "120", 1205 → "120,5". */
+fun cm(mm: Int): String = if (mm % 10 == 0) "${mm / 10}" else "${mm / 10},${mm % 10}"
+
+fun medidasCm(anchoMm: Int, altoMm: Int) = "${cm(anchoMm)} × ${cm(altoMm)} cm"
+
 data class Limites(val maxAnchoMm: Int, val maxAltoMm: Int)
 
 /** Medidas máximas razonables de fabricación según la forma (cada hoja de corredera cubre hasta ~1,5 m). */

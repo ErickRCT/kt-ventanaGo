@@ -3,12 +3,19 @@ package cl.ventanago.app.datos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import java.net.URLEncoder
 
 // Carrito, solicitudes, ofertas de los proveedores, chat y avisos (SolicitudDtos y ProveedorDtos de ms-ventanaGo).
 
+/**
+ * Una ventana del carrito, de una solicitud o de una oferta. Las medidas, la cantidad y las hojas se envían
+ * siempre ([EncodeDefault]): el backend las recibe como enteros y, si faltan, quedan en 0.
+ */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class ItemVentana(
     val id: String? = null,
@@ -18,10 +25,10 @@ data class ItemVentana(
     val serieNombre: String? = null,
     /** Ruta relativa de la imagen de la pauta. */
     val imagenPauta: String? = null,
-    val hojas: Int = 2,
-    val anchoMm: Int = 0,
-    val altoMm: Int = 0,
-    val cantidad: Int = 1,
+    @EncodeDefault val hojas: Int = 2,
+    @EncodeDefault val anchoMm: Int = 0,
+    @EncodeDefault val altoMm: Int = 0,
+    @EncodeDefault val cantidad: Int = 1,
     val colorId: Long? = null,
     val colorNombre: String = "",
     val vidrioId: Long? = null,

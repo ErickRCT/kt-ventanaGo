@@ -43,18 +43,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import cl.ventanago.app.datos.Imagenes
 import cl.ventanago.app.datos.mensaje
 import cl.ventanago.app.ui.Colores
 import coil3.compose.SubcomposeAsyncImage
 
-/** Imagen del catálogo a partir de su ruta relativa; si no hay o no carga, muestra un ícono. */
+/**
+ * Imagen del catálogo a partir de su ruta relativa; si no hay o no carga, muestra un ícono. Con [tamano] =
+ * Dp.Unspecified ocupa lo que diga [modifier].
+ */
 @Composable
 fun ImagenCatalogo(ruta: String?, modifier: Modifier = Modifier, tamano: Dp = 56.dp) {
     val url = Imagenes.url(ruta)
     Box(
         modifier
-            .size(tamano)
+            .then(if (tamano.isSpecified) Modifier.size(tamano) else Modifier)
             .clip(RoundedCornerShape(8.dp))
             .background(Colores.fondo)
             .border(1.dp, Colores.borde, RoundedCornerShape(8.dp)),

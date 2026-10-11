@@ -82,6 +82,7 @@ fun CampoTexto(
     mayusculas: KeyboardCapitalization = KeyboardCapitalization.Sentences,
     lineas: Int = 1,
     prefijo: String? = null,
+    sufijo: String? = null,
     ayuda: String? = null,
 ) {
     OutlinedTextField(
@@ -93,6 +94,7 @@ fun CampoTexto(
         singleLine = lineas == 1,
         minLines = lineas,
         prefix = prefijo?.let { { Text(it) } },
+        suffix = sufijo?.let { { Text(it) } },
         keyboardOptions = KeyboardOptions(keyboardType = teclado, capitalization = mayusculas),
         modifier = modifier.fillMaxWidth(),
     )

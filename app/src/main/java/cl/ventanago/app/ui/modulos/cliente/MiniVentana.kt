@@ -26,6 +26,7 @@ import cl.ventanago.app.ventana.ConfigVentana
 import cl.ventanago.app.ventana.DibujoVentana
 import cl.ventanago.app.ventana.colorMarco
 import cl.ventanago.app.ventana.colorVidrio
+import cl.ventanago.app.ventana.medidasCm
 import cl.ventanago.app.ventana.modeloDeTextos
 
 /** Dibujo pequeño de una ventana del carrito o de una solicitud. */
@@ -43,18 +44,19 @@ fun MiniVentana(item: ItemVentana, modifier: Modifier = Modifier) {
     }
 }
 
-fun detalleItem(item: ItemVentana) =
-    "${item.anchoMm} × ${item.altoMm} mm · ${item.colorNombre} · ${item.vidrioNombre}" + (item.serieNombre?.let { " · Serie $it" } ?: "")
+/** Medidas, color, vidrio y serie: en centímetros para el cliente y en milímetros para la empresa ([enCm] = false). */
+fun detalleItem(item: ItemVentana, enCm: Boolean = true) =
+    (if (enCm) medidasCm(item.anchoMm, item.altoMm) else "${item.anchoMm} × ${item.altoMm} mm") + " · ${item.colorNombre} · ${item.vidrioNombre}" + (item.serieNombre?.let { " · Serie $it" } ?: "")
 
 /** Una ventana pedida u ofertada: dibujo, cantidad, medidas y (si lo tiene) el precio unitario. */
 @Composable
-fun FilaItem(item: ItemVentana, tamano: Dp = 44.dp, conObservaciones: Boolean = false, sufijoPrecio: String = " c/u") {
+fun FilaItem(item: ItemVentana, tamano: Dp = 44.dp, conObservaciones: Boolean = false, sufijoPrecio: String = " c/u", enCm: Boolean = true) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         MiniVentana(item, Modifier.size(tamano))
         Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f)) {
             Text("${item.cantidad} × ${item.descripcion}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-            Text(detalleItem(item), style = MaterialTheme.typography.bodySmall, color = Colores.gris)
+            Text(detalleItem(item, enCm), style = MaterialTheme.typography.bodySmall, color = Colores.gris)
             if (conObservaciones) {
                 item.observaciones?.takeIf { it.isNotBlank() }?.let { Text("Obs.: $it", style = MaterialTheme.typography.bodySmall, color = Colores.gris) }
             }

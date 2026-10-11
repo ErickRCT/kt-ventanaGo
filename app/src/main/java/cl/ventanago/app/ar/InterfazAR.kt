@@ -55,6 +55,7 @@ import androidx.lifecycle.LifecycleOwner
 import cl.ventanago.app.ui.Colores
 import cl.ventanago.app.ventana.ConfigVentana
 import cl.ventanago.app.ventana.DibujoVentana
+import cl.ventanago.app.ventana.medidasCm
 
 // Interfaz de la realidad aumentada: lo que se ve en cada modo. La sesión de ARCore y el ciclo de vida están en
 // RealidadAumentadaActivity.
@@ -144,7 +145,7 @@ internal fun PantallaAR(modo: Modo, config: ConfigVentana, nombre: String, rende
                         .weight(1f)
                         .fillMaxWidth(),
                 )
-                Text("${config.anchoMm} × ${config.altoMm} mm", color = Colores.gris, modifier = Modifier.padding(top = 8.dp))
+                Text(medidasCm(config.anchoMm, config.altoMm), color = Colores.gris, modifier = Modifier.padding(top = 8.dp))
                 Spacer(Modifier.height(12.dp))
                 if (m.abrirAjustes) {
                     Button(onClick = acciones::abrirAjustes, modifier = Modifier.fillMaxWidth()) { Text("Abrir Ajustes") }
@@ -179,7 +180,7 @@ private fun BarraSuperior(modo: Modo, config: ConfigVentana, nombre: String, acc
                 .padding(horizontal = 10.dp, vertical = 4.dp),
         ) {
             Text(nombre.ifBlank { "Tu ventana" }, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1)
-            Text("${config.anchoMm} × ${config.altoMm} mm", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
+            Text(medidasCm(config.anchoMm, config.altoMm), color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
         }
         if (modo is Modo.Ar) {
             TextButton(

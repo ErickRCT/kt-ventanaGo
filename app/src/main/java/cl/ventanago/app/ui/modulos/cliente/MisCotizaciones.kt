@@ -77,6 +77,7 @@ import cl.ventanago.app.ui.modulos.mercado.FotosSolicitud
 import cl.ventanago.app.ui.modulos.mercado.NombreProveedor
 import cl.ventanago.app.ui.modulos.mercado.SelectorEstrellas
 import cl.ventanago.app.ui.navegacion.Pantalla
+import cl.ventanago.app.ventana.medidasCm
 
 /**
  * Mis cotizaciones: cada solicitud con las ofertas de los proveedores para compararlas, conversar con ellos y
@@ -327,7 +328,7 @@ private fun TarjetaOferta(
                             FilaItem(item)
                             if (original != null && (original.anchoMm != item.anchoMm || original.altoMm != item.altoMm || original.cantidad != item.cantidad)) {
                                 Text(
-                                    "Pediste ${original.cantidad} × ${original.anchoMm} × ${original.altoMm} mm",
+                                    "Pediste ${original.cantidad} × ${medidasCm(original.anchoMm, original.altoMm)}",
                                     style = MaterialTheme.typography.bodySmall, color = Colores.azul,
                                 )
                             }
