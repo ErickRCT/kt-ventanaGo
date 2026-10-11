@@ -1,9 +1,5 @@
 package cl.ventanago.app.ui.modulos.cliente
 
-import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
@@ -45,7 +42,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,8 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import cl.ventanago.app.datos.ClienteApi
-import cl.ventanago.app.datos.ItemVentana
+import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.ventanago.app.datos.Oferta
 import cl.ventanago.app.datos.Solicitud
 import cl.ventanago.app.datos.mensaje
@@ -68,10 +63,12 @@ import cl.ventanago.app.ui.comun.DialogoConfirmar
 import cl.ventanago.app.ui.comun.EstadoCargando
 import cl.ventanago.app.ui.comun.EstadoError
 import cl.ventanago.app.ui.comun.EstadoMensaje
-import cl.ventanago.app.ui.comun.LocalAvisos
 import cl.ventanago.app.ui.comun.MensajeError
+import cl.ventanago.app.ui.comun.MostrarAvisos
+import cl.ventanago.app.ui.comun.escribirCorreo
+import cl.ventanago.app.ui.comun.fechaLegible
+import cl.ventanago.app.ui.comun.llamar
 import cl.ventanago.app.ui.modulos.Etiqueta
-import cl.ventanago.app.ui.modulos.cotizaciones.fechaLegible
 import cl.ventanago.app.ui.modulos.mercado.DialogoChat
 import cl.ventanago.app.ui.modulos.mercado.DialogoProveedor
 import cl.ventanago.app.ui.modulos.mercado.Estrellas
@@ -80,84 +77,32 @@ import cl.ventanago.app.ui.modulos.mercado.FotosSolicitud
 import cl.ventanago.app.ui.modulos.mercado.NombreProveedor
 import cl.ventanago.app.ui.modulos.mercado.SelectorEstrellas
 import cl.ventanago.app.ui.navegacion.Pantalla
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
-
-private fun abrirIntent(context: Context, intent: Intent) {
-    try {
-        context.startActivity(intent)
-    } catch (_: ActivityNotFoundException) {
-        // Sin app de teléfono o correo: no se hace nada.
-    }
-}
 
 /**
  * Mis cotizaciones: cada solicitud con las ofertas de los proveedores para compararlas, conversar con ellos y
- * elegir una. Con el trabajo hecho, el cliente valora al proveedor.
+ * elegir una. Con el trabajo hecho, el cliente valora al proveedor. [destacar]: solicitud que se abre desplegada
+ * (la de una notificación que se tocó).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaMisCotizaciones(abrir: (Pantalla) -> Unit) {
-    val avisar = LocalAvisos.current
-    val alcance = rememberCoroutineScope()
-    var solicitudes by remember { mutableStateOf<List<Solicitud>?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var recarga by remember { mutableIntStateOf(0) }
-    var refrescando by remember { mutableStateOf(false) }
-
-    // Diálogos y acciones compartidos por todas las tarjetas.
-    var chat by remember { mutableStateOf<Pair<Oferta, Boolean>?>(null) }
-    var proveedor by remember { mutableStateOf<Long?>(null) }
-    var porElegir by remember { mutableStateOf<Pair<Solicitud, Oferta>?>(null) }
-    var porCancelar by remember { mutableStateOf<Solicitud?>(null) }
-    var porValorar by remember { mutableStateOf<Solicitud?>(null) }
-    var trabajando by remember { mutableStateOf(false) }
-
-    LaunchedEffect(recarga) {
-        try {
-            solicitudes = ClienteApi.solicitudes().sortedByDescending { it.numero }
-            error = null
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            if (solicitudes == null) error = e.mensaje() else avisar(e.mensaje())
-        }
-        refrescando = false
-    }
-
-    fun reemplazar(actualizada: Solicitud) {
-        solicitudes = solicitudes?.map { if (it.numero == actualizada.numero) actualizada else it }
-    }
-
-    fun ejecutar(exito: String, bloque: suspend () -> Solicitud) {
-        if (trabajando) return
-        alcance.launch {
-            trabajando = true
-            try {
-                reemplazar(bloque())
-                avisar(exito)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                avisar(e.mensaje())
-            }
-            trabajando = false
-            porElegir = null
-            porCancelar = null
-            porValorar = null
-        }
-    }
-
-    val lista = solicitudes
+fun PantallaMisCotizaciones(abrir: (Pantalla) -> Unit, destacar: Long? = null, vm: MisCotizacionesViewModel = viewModel()) {
+    MostrarAvisos(vm)
+    val trabajando = vm.trabajando
+    val lista = vm.solicitudes
     when {
-        lista == null && error != null -> EstadoError(error!!) { error = null; recarga++ }
+        lista == null && vm.error != null -> EstadoError(vm.error!!) { vm.reintentar() }
         lista == null -> EstadoCargando("Cargando tus cotizaciones…")
         lista.isEmpty() -> EstadoMensaje(
             Icons.Outlined.History, "Aún no has pedido cotizaciones",
             "Cuando envíes tu carrito, los proveedores de tu zona te harán ofertas y las verás aquí.", "Diseñar ventana",
         ) { abrir(Pantalla.DISENAR_VENTANA) }
-        else -> PullToRefreshBox(isRefreshing = refrescando, onRefresh = { refrescando = true; recarga++ }, modifier = Modifier.fillMaxSize()) {
-            LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
+        else -> PullToRefreshBox(isRefreshing = vm.refrescando, onRefresh = { vm.cargar(manual = true) }, modifier = Modifier.fillMaxSize()) {
+            val estadoLista = rememberLazyListState()
+            LaunchedEffect(destacar, lista.size) {
+                val i = lista.indexOfFirst { it.numero == destacar }
+                if (i >= 0) estadoLista.animateScrollToItem(i + 1)
+            }
+            LazyColumn(state = estadoLista, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
                 item {
                     Text("Mis cotizaciones", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Text("Compara las ofertas, conversa con los proveedores y elige la que más te convenga. Desliza hacia abajo para actualizar.", color = Colores.gris)
@@ -165,27 +110,25 @@ fun PantallaMisCotizaciones(abrir: (Pantalla) -> Unit) {
                 items(lista, key = { it.numero }) { s ->
                     TarjetaSolicitud(
                         s,
-                        alChat = { o -> chat = o to (o.estado != "DESCARTADA" && s.estado != "CANCELADA") },
-                        alVerProveedor = { proveedor = it },
-                        alElegir = { o -> porElegir = s to o },
-                        alCancelar = { porCancelar = s },
-                        alValorar = { porValorar = s },
+                        abiertaAlInicio = s.numero == destacar,
+                        alChat = { o -> vm.chat = o to (o.estado != "DESCARTADA" && s.estado != "CANCELADA") },
+                        alVerProveedor = { vm.proveedor = it },
+                        alElegir = { o -> vm.porElegir = s to o },
+                        alCancelar = { vm.porCancelar = s },
+                        alValorar = { vm.porValorar = s },
                     )
                 }
             }
         }
     }
 
-    chat?.let { (o, abierta) ->
-        DialogoChat(o.id, o.proveedor?.nombre ?: "Proveedor", abierta) {
-            chat = null
-            recarga++
-        }
+    vm.chat?.let { (o, abierta) ->
+        DialogoChat(o.id, o.proveedor?.nombre ?: "Proveedor", abierta) { vm.cerrarChat() }
     }
-    proveedor?.let { DialogoProveedor(it) { proveedor = null } }
-    porElegir?.let { (s, o) ->
+    vm.proveedor?.let { DialogoProveedor(it) { vm.proveedor = null } }
+    vm.porElegir?.let { (s, o) ->
         AlertDialog(
-            onDismissRequest = { if (!trabajando) porElegir = null },
+            onDismissRequest = { if (!trabajando) vm.porElegir = null },
             title = { Text("¿Elegir a ${o.proveedor?.nombre ?: "este proveedor"}?") },
             text = {
                 Text(
@@ -194,36 +137,32 @@ fun PantallaMisCotizaciones(abrir: (Pantalla) -> Unit) {
                 )
             },
             confirmButton = {
-                Button(
-                    onClick = { ejecutar("Elegiste a ${o.proveedor?.nombre.orEmpty()}") { ClienteApi.elegirOferta(s.numero, o.id) } },
-                    enabled = !trabajando,
-                ) {
+                Button(onClick = { vm.elegir(s, o) }, enabled = !trabajando) {
                     if (trabajando) CircularProgressIndicator(Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp) else Text("Elegir oferta")
                 }
             },
-            dismissButton = { TextButton(onClick = { porElegir = null }, enabled = !trabajando) { Text("Volver") } },
+            dismissButton = { TextButton(onClick = { vm.porElegir = null }, enabled = !trabajando) { Text("Volver") } },
         )
     }
-    porCancelar?.let { s ->
+    vm.porCancelar?.let { s ->
         DialogoConfirmar(
             titulo = "¿Cancelar la solicitud N° ${s.numero}?",
             mensaje = "Los proveedores ya no podrán ofertar y avisaremos a quienes te enviaron ofertas.",
             textoConfirmar = "Cancelar solicitud",
             procesando = trabajando,
-            alConfirmar = { ejecutar("Solicitud N° ${s.numero} cancelada") { ClienteApi.cancelar(s.numero) } },
-            alCancelar = { if (!trabajando) porCancelar = null },
+            alConfirmar = { vm.cancelar(s) },
+            alCancelar = { if (!trabajando) vm.porCancelar = null },
         )
     }
-    porValorar?.let { s ->
-        DialogoValorar(s, trabajando, alCerrar = { if (!trabajando) porValorar = null }) { estrellas, comentario ->
-            ejecutar("¡Gracias por tu valoración!") { ClienteApi.valorar(s.numero, estrellas, comentario) }
-        }
+    vm.porValorar?.let { s ->
+        DialogoValorar(s, trabajando, alCerrar = { if (!trabajando) vm.porValorar = null }) { estrellas, comentario -> vm.valorar(s, estrellas, comentario) }
     }
 }
 
 @Composable
 private fun TarjetaSolicitud(
     s: Solicitud,
+    abiertaAlInicio: Boolean,
     alChat: (Oferta) -> Unit,
     alVerProveedor: (Long) -> Unit,
     alElegir: (Oferta) -> Unit,
@@ -231,7 +170,7 @@ private fun TarjetaSolicitud(
     alValorar: () -> Unit,
 ) {
     val context = LocalContext.current
-    var abierta by remember { mutableStateOf(false) }
+    var abierta by remember(abiertaAlInicio) { mutableStateOf(abiertaAlInicio) }
     val validas = s.ofertasValidas().sortedBy { it.total ?: Long.MAX_VALUE }
     val elegida = s.ofertaElegida()
     val masBarata = validas.firstOrNull()?.total
@@ -311,12 +250,12 @@ private fun TarjetaSolicitud(
                                 Text(listOf(c.email, c.telefono).filter { it.isNotBlank() }.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     if (c.telefono.isNotBlank()) {
-                                        OutlinedButton(onClick = { abrirIntent(context, Intent(Intent.ACTION_DIAL, Uri.parse("tel:${c.telefono}"))) }) {
+                                        OutlinedButton(onClick = { context.llamar(c.telefono) }) {
                                             Icon(Icons.Outlined.Call, contentDescription = null)
                                             Text(" Llamar")
                                         }
                                     }
-                                    OutlinedButton(onClick = { abrirIntent(context, Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${c.email}"))) }) {
+                                    OutlinedButton(onClick = { context.escribirCorreo(c.email) }) {
                                         Icon(Icons.Outlined.Email, contentDescription = null)
                                         Text(" Escribir")
                                     }
@@ -433,17 +372,4 @@ private fun DialogoValorar(s: Solicitud, enviando: Boolean, alCerrar: () -> Unit
         },
         dismissButton = { TextButton(onClick = alCerrar, enabled = !enviando) { Text("Más tarde") } },
     )
-}
-
-@Composable
-private fun FilaItem(item: ItemVentana) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        MiniVentana(item, Modifier.size(44.dp))
-        Spacer(Modifier.width(8.dp))
-        Column(Modifier.weight(1f)) {
-            Text("${item.cantidad} × ${item.descripcion}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-            Text(detalleItem(item), style = MaterialTheme.typography.bodySmall, color = Colores.gris)
-        }
-        item.precioUnitario?.let { Text("${pesos(it)} c/u", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold) }
-    }
 }

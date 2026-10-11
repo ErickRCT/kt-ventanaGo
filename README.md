@@ -38,6 +38,16 @@ Los clientes pueden entrar (y crear su cuenta) con "Continuar con Google". Se co
 
 Sin el client ID en `gradle.properties`, la app no muestra el botón.
 
+## Notificaciones push
+
+Cada aviso de la campana (oferta nueva, mensaje del chat, oferta elegida, solicitud nueva para la empresa…) llega también como notificación al teléfono, aunque la app esté cerrada. Al tocarla se abre la solicitud. Se usa Firebase Cloud Messaging y se configura una vez en la [consola de Firebase](https://console.firebase.google.com/):
+
+1. **Crear un proyecto** (puede ser el mismo proyecto de Google Cloud del ingreso con Google).
+2. **Agregar una app Android** con el paquete `cl.ventanago.movil` y descargar `google-services.json` a la carpeta `app/`. Sin ese archivo la app compila igual, pero no recibe notificaciones.
+3. **Configuración del proyecto > Cuentas de servicio > Generar nueva clave privada**: el JSON descargado va en la variable de entorno `FIREBASE_CREDENCIALES` del backend en Render (el contenido del archivo tal cual, o en base64). Ese archivo **sí es secreto**: no lo subas a git.
+
+Al iniciar sesión, la app registra el teléfono en el backend (`POST /dispositivos`) y, en Android 13 o superior, pide permiso para mostrar notificaciones (solo la primera vez). Al cerrar sesión el teléfono deja de recibir los avisos de esa cuenta. Con la app abierta, la campana, Mis cotizaciones, las solicitudes de la empresa y el chat se actualizan apenas llega un aviso.
+
 ## Clave de firma
 
 La versión release se firma con la clave propia del proyecto, en la carpeta `firma/` (**fuera de git**):
@@ -66,10 +76,13 @@ adb shell am start -n cl.ventanago.movil/cl.ventanago.app.ar.RealidadAumentadaAc
 
 ```
 app/src/main/java/cl/ventanago/app/
-  datos/          Api (OkHttp + kotlinx.serialization), modelos, sesión, carrito local, validaciones
-  ventana/        Geometría y dibujo de las ventanas, reglas del catálogo
-  ar/             Realidad aumentada: detección del teléfono, renderizador, vista con cámara
-  ui/comun/       Mantenedor genérico, formularios, selectores, imágenes
-  ui/modulos/     Pantallas de cada módulo (administrador, cotizaciones, cliente, empresa)
-  ui/navegacion/  Encabezado, menú lateral y panel por rol
+  datos/            Api (OkHttp + kotlinx.serialization), modelos, roles, sesión, carrito local, validaciones
+  notificaciones/   Notificaciones push (Firebase Cloud Messaging)
+  ventana/          Geometría y dibujo de las ventanas, reglas del catálogo
+  ar/               Realidad aumentada: detección del teléfono, sesión de ARCore, interfaz, renderizador, vista con cámara
+  ui/comun/         Mantenedor genérico, formularios, selectores, imágenes, ModeloBase de los ViewModel
+  ui/modulos/       Pantallas de cada módulo (administrador, cotizaciones, cliente, empresa, mercado)
+  ui/navegacion/    Navegación (Navigation Compose), encabezado, menú lateral y panel por rol
 ```
+
+Cada pantalla del menú es un destino de la navegación, con historial: atrás vuelve a la pantalla anterior, y al volver a una sección desde el menú se recupera cómo quedó. El detalle de una solicitud de empresa es su propio destino (`solicitud/{numero}`), al que también llevan las notificaciones. Las pantallas con más lógica (Carrito, Mis cotizaciones, Solicitudes de empresa y su oferta, campana de avisos) guardan su estado y llamadas al backend en un ViewModel, así sobreviven a girar el teléfono; el editor de cotizaciones usa una clase de estado (`EstadoEditorCotizacion`) porque vive en un diálogo.

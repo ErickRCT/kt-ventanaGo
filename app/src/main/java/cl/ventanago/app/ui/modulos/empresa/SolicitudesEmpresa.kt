@@ -23,33 +23,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import cl.ventanago.app.datos.EmpresaApi
 import cl.ventanago.app.datos.Solicitud
-import cl.ventanago.app.datos.mensaje
+import cl.ventanago.app.datos.nombreEstadoSolicitud
 import cl.ventanago.app.datos.nombreServicio
 import cl.ventanago.app.datos.pesos
 import cl.ventanago.app.ui.Colores
 import cl.ventanago.app.ui.comun.EstadoCargando
 import cl.ventanago.app.ui.comun.EstadoError
 import cl.ventanago.app.ui.comun.EstadoMensaje
-import cl.ventanago.app.ui.comun.LocalAvisos
+import cl.ventanago.app.ui.comun.MostrarAvisos
+import cl.ventanago.app.ui.comun.fechaLegible
 import cl.ventanago.app.ui.modulos.Etiqueta
-import cl.ventanago.app.ui.modulos.cotizaciones.fechaLegible
 import cl.ventanago.app.ui.modulos.mercado.EtiquetaEstadoSolicitud
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.delay
 
 /** En qué está cada solicitud desde el punto de vista del proveedor. */
 private enum class Bandeja(val titulo: String) {
@@ -86,46 +77,26 @@ fun EtiquetaOferta(s: Solicitud) {
 
 /**
  * Solicitudes que le llegan al proveedor (de su zona y servicios, o a las que lo invitaron) agrupadas por lo que
- * falta hacer; al tocar una se abre para enviar la oferta o seguir la conversación.
+ * falta hacer; al tocar una se abre su detalle ([alAbrir]) para enviar la oferta o seguir la conversación.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaSolicitudesEmpresa(esAdmin: Boolean = false) {
-    val avisar = LocalAvisos.current
-    var solicitudes by remember { mutableStateOf<List<Solicitud>?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var recarga by remember { mutableIntStateOf(0) }
-    var refrescando by remember { mutableStateOf(false) }
-    var filtro by rememberSaveable { mutableStateOf(if (esAdmin) "PENDIENTE" else Bandeja.POR_OFERTAR.name) }
-    var abierta by remember { mutableStateOf<Long?>(null) }
-
-    LaunchedEffect(recarga) {
-        // Las solicitudes nuevas llegan de los clientes: se revisan cada minuto mientras la pantalla está abierta.
-        while (true) {
-            try {
-                solicitudes = EmpresaApi.solicitudes().sortedByDescending { it.numero }
-                error = null
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                if (solicitudes == null) error = e.mensaje() else if (refrescando) avisar(e.mensaje())
-            }
-            refrescando = false
-            delay(60_000)
-        }
-    }
+fun PantallaSolicitudesEmpresa(esAdmin: Boolean, vm: SolicitudesEmpresaViewModel, alAbrir: (Long) -> Unit) {
+    MostrarAvisos(vm)
+    LaunchedEffect(vm) { vm.sondear() }
+    val filtro = vm.filtro ?: if (esAdmin) "PENDIENTE" else Bandeja.POR_OFERTAR.name
 
     fun coincide(s: Solicitud, f: String) =
         if (esAdmin) f == "TODAS" || s.estado == f else f == Bandeja.TODAS.name || bandeja(s).name == f
     val filtros: List<Pair<String, String>> =
-        if (esAdmin) ESTADOS_ADMIN.map { it to if (it == "TODAS") "Todas" else cl.ventanago.app.datos.nombreEstadoSolicitud(it) }
+        if (esAdmin) ESTADOS_ADMIN.map { it to if (it == "TODAS") "Todas" else nombreEstadoSolicitud(it) }
         else Bandeja.entries.map { it.name to it.titulo }
 
-    val lista = solicitudes
+    val lista = vm.solicitudes
     when {
-        lista == null && error != null -> EstadoError(error!!) { error = null; recarga++ }
+        lista == null && vm.error != null -> EstadoError(vm.error!!) { vm.reintentar() }
         lista == null -> EstadoCargando("Cargando solicitudes…")
-        else -> PullToRefreshBox(isRefreshing = refrescando, onRefresh = { refrescando = true; recarga++ }, modifier = Modifier.fillMaxSize()) {
+        else -> PullToRefreshBox(isRefreshing = vm.refrescando, onRefresh = { vm.cargar(manual = true) }, modifier = Modifier.fillMaxSize()) {
             val visibles = lista.filter { coincide(it, filtro) }
             LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
                 item {
@@ -144,7 +115,7 @@ fun PantallaSolicitudesEmpresa(esAdmin: Boolean = false) {
                         filtros.forEach { (f, titulo) ->
                             FilterChip(
                                 selected = filtro == f,
-                                onClick = { filtro = f },
+                                onClick = { vm.filtro = f },
                                 label = { Text("$titulo (${lista.count { coincide(it, f) }})") },
                             )
                         }
@@ -162,7 +133,7 @@ fun PantallaSolicitudesEmpresa(esAdmin: Boolean = false) {
                 items(visibles, key = { it.numero }) { s ->
                     val porOfertar = !esAdmin && bandeja(s) == Bandeja.POR_OFERTAR
                     Card(
-                        onClick = { abierta = s.numero },
+                        onClick = { alAbrir(s.numero) },
                         colors = CardDefaults.cardColors(containerColor = Color.White),
                         border = BorderStroke(1.dp, if (porOfertar) Color(0xFFF2C46D) else Colores.borde),
                         shape = RoundedCornerShape(12.dp),
@@ -210,16 +181,6 @@ fun PantallaSolicitudesEmpresa(esAdmin: Boolean = false) {
                         }
                     }
                 }
-            }
-        }
-    }
-
-    lista?.firstOrNull { it.numero == abierta }?.let { s ->
-        DetalleSolicitudEmpresa(s, esAdmin) { actualizada ->
-            abierta = null
-            if (actualizada != null) {
-                solicitudes = solicitudes?.map { if (it.numero == actualizada.numero) actualizada else it }
-                avisar("Oferta enviada para la solicitud N° ${actualizada.numero}")
             }
         }
     }

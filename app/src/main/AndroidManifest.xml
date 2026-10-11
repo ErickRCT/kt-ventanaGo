@@ -3,6 +3,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Android 13+: notificaciones push de ofertas, mensajes y respuestas. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Cámara y RA opcionales: la app se instala en cualquier teléfono y, sin ellas, muestra el dibujo. -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -19,6 +21,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -35,6 +38,24 @@
 
         <!-- ARCore "optional": si el teléfono no lo tiene, la RA se reemplaza por la vista con cámara. -->
         <meta-data android:name="com.google.ar.core" android:value="optional" />
+
+        <!-- Notificaciones push (Firebase Cloud Messaging). -->
+        <service
+            android:name="cl.ventanago.app.notificaciones.MensajeriaPush"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notificacion" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/azul_ventanago" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="avisos" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -25,6 +25,7 @@ import cl.ventanago.app.datos.resumen
 import cl.ventanago.app.ui.Colores
 import cl.ventanago.app.ui.comun.LocalAvisos
 import cl.ventanago.app.ui.comun.Mantenedor
+import cl.ventanago.app.ui.comun.fechaLegible
 import cl.ventanago.app.ui.modulos.Etiqueta
 
 @Composable

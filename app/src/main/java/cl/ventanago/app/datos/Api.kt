@@ -52,9 +52,12 @@ object Api {
 
     suspend fun <T> lista(ruta: String, elemento: KSerializer<T>): List<T> = get(ruta, ListSerializer(elemento))
 
-    /** POST/PUT con cuerpo JSON. Devuelve el texto de la respuesta (los mantenedores no lo necesitan). */
-    suspend fun <B> enviar(metodo: String, ruta: String, cuerpo: B, escritor: SerializationStrategy<B>): String =
-        ejecutar(metodo, ruta, json.encodeToString(escritor, cuerpo))
+    /**
+     * POST/PUT con cuerpo JSON. Devuelve el texto de la respuesta (los mantenedores no lo necesitan).
+     * [tokenSesion]: otra sesión que la abierta (p. ej. la que se está cerrando, o la guardada cuando la app no está abierta).
+     */
+    suspend fun <B> enviar(metodo: String, ruta: String, cuerpo: B, escritor: SerializationStrategy<B>, tokenSesion: String? = token): String =
+        ejecutar(metodo, ruta, json.encodeToString(escritor, cuerpo), tokenSesion)
 
     /** Petición sin cuerpo que devuelve texto (DELETE con respuesta, POST sin datos). */
     suspend fun texto(metodo: String, ruta: String): String =
@@ -85,11 +88,11 @@ object Api {
         }
     }
 
-    private suspend fun ejecutar(metodo: String, ruta: String, cuerpoJson: String?): String = withContext(Dispatchers.IO) {
+    private suspend fun ejecutar(metodo: String, ruta: String, cuerpoJson: String?, tokenSesion: String? = token): String = withContext(Dispatchers.IO) {
         val peticion = Request.Builder()
             .url(BuildConfig.API_BASE_URL + ruta)
             .method(metodo, cuerpoJson?.toRequestBody(tipoJson))
-            .apply { token?.let { header("Authorization", "Bearer $it") } }
+            .apply { tokenSesion?.let { header("Authorization", "Bearer $it") } }
             .build()
         val respuesta = try {
             http.newCall(peticion).execute()
@@ -99,7 +102,8 @@ object Api {
         respuesta.use {
             val texto = it.body?.string().orEmpty()
             if (it.isSuccessful) return@withContext texto
-            if (it.code == 401 && token != null && !ruta.startsWith("/auth/")) {
+            // Solo vence la sesión abierta; un 401 con otra (la que se cierra o la guardada) no la toca.
+            if (it.code == 401 && token != null && tokenSesion == token && !ruta.startsWith("/auth/")) {
                 withContext(Dispatchers.Main) { alVencerSesion() }
                 throw ErrorApi("Tu sesión venció. Vuelve a iniciar sesión.", 401)
             }

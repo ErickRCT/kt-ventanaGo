@@ -2,12 +2,11 @@ package cl.ventanago.app.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Surface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +21,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Pin
@@ -32,13 +32,16 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -54,10 +57,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedButton
-import cl.ventanago.app.datos.IngresoGoogle
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -70,16 +69,15 @@ import cl.ventanago.app.R
 import cl.ventanago.app.datos.Autenticacion
 import cl.ventanago.app.datos.CarritoLocal
 import cl.ventanago.app.datos.ClienteApi
+import cl.ventanago.app.datos.IngresoGoogle
 import cl.ventanago.app.datos.Recursos
+import cl.ventanago.app.datos.Rol
 import cl.ventanago.app.datos.Sesion
 import cl.ventanago.app.datos.emailValido
 import cl.ventanago.app.datos.mensaje
 import cl.ventanago.app.ui.comun.MensajeError
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-/** Roles que ya tienen pantallas en la app. */
-private val ROLES_APP = setOf("ADMIN", "CLIENTE", "PROVEEDOR")
 
 /**
  * Ingreso: los clientes con Google o con un código que llega a su correo (sin contraseña), y el administrador
@@ -113,8 +111,9 @@ fun PantallaLogin(autenticacion: Autenticacion, motivo: String? = null, alVolver
     }
 
     fun entrar(sesion: Sesion) {
-        if (sesion.cuenta.rol in ROLES_APP) autenticacion.iniciar(sesion)
-        else error = "El panel de empresas y proveedores todavía no está en la app. Por ahora úsalo desde la versión web."
+        // Solo los roles que la app conoce (administrador, cliente y empresa).
+        if (Rol.delBackend(sesion.cuenta.rol) != null) autenticacion.iniciar(sesion)
+        else error = "Este tipo de cuenta todavía no está en la app. Por ahora úsala desde la versión web."
     }
 
     fun ejecutar(accion: suspend () -> Unit) {
