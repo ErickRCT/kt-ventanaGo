@@ -42,6 +42,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
@@ -72,12 +73,12 @@ import cl.ventanago.app.ui.modulos.PantallaTiposPauta
 import cl.ventanago.app.ui.modulos.PantallaTiposPerfil
 import cl.ventanago.app.ui.modulos.PantallaVidrios
 import cl.ventanago.app.ui.modulos.cliente.PantallaCarrito
+import cl.ventanago.app.ui.modulos.cliente.PantallaDetalleCotizacion
 import cl.ventanago.app.ui.modulos.cliente.PantallaDisenar
 import cl.ventanago.app.ui.modulos.cliente.PantallaMisCotizaciones
 import cl.ventanago.app.ui.modulos.cotizaciones.PantallaCotizaciones
 import cl.ventanago.app.ui.modulos.empresa.PantallaDetalleSolicitudEmpresa
 import cl.ventanago.app.ui.modulos.empresa.PantallaSolicitudesEmpresa
-import cl.ventanago.app.ui.modulos.empresa.SolicitudesEmpresaViewModel
 import cl.ventanago.app.ui.modulos.mercado.PantallaMiPerfil
 import cl.ventanago.app.ui.modulos.mercado.PantallaProveedores
 import kotlinx.coroutines.flow.first
@@ -111,11 +112,12 @@ fun Panel(
     val pantalla = pantallaDeRuta(ruta) ?: inicial
     val enDetalle = ruta == RUTA_SOLICITUD_EMPRESA
     val enAvisos = ruta == RUTA_AVISOS
+    val enMiSolicitud = ruta == RUTA_MI_SOLICITUD
+    // Pantallas internas (avisos, detalle de una solicitud del cliente): flecha para volver y sin barra inferior.
+    val enSubpantalla = enAvisos || enMiSolicitud
     val pestanas = pestanasDe(rol)
     val nombre = sesion?.let { it.cuenta.nombre?.takeIf { n -> n.isNotBlank() } ?: it.cuenta.email.substringBefore('@') } ?: "Invitado"
     val email = sesion?.cuenta?.email.orEmpty()
-    // Solicitud de Mis cotizaciones que se muestra desplegada (la de un aviso que se tocó).
-    var destacada by rememberSaveable { mutableStateOf<Long?>(null) }
     var trasIngresoAtendido by rememberSaveable { mutableStateOf(false) }
     // Cada cuenta con su propio modelo de avisos (el administrador no recibe avisos); lo usan la campana y la pantalla.
     val modeloAvisos: AvisosViewModel = viewModel(key = "avisos-$email")
@@ -131,12 +133,12 @@ fun Panel(
         alcance.launch { cajon.close() }
     }
 
-    /** Lleva a la solicitud de un aviso: el cliente a Mis cotizaciones, la empresa al detalle de la solicitud. */
+    /** Lleva a la solicitud de un aviso: al detalle de la solicitud (del cliente o de la empresa). */
     fun abrirSolicitud(numero: Long?) {
         when (rol) {
             Rol.CLIENTE -> {
-                destacada = numero
                 navegacion.abrirSeccion(Pantalla.MIS_COTIZACIONES)
+                if (numero != null) navegacion.navigate(rutaMiSolicitud(numero)) { launchSingleTop = true }
             }
             Rol.PROVEEDOR, Rol.ADMIN -> {
                 navegacion.abrirSeccion(Pantalla.SOLICITUDES)
@@ -196,13 +198,17 @@ fun Panel(
                     // El detalle de una solicitud tiene su propia barra con el botón para volver.
                     if (!enDetalle) {
                         Encabezado(
-                            titulo = if (enAvisos) "Avisos" else pantalla.titulo,
+                            titulo = when {
+                                enAvisos -> "Avisos"
+                                enMiSolicitud -> "Solicitud N° ${entrada?.arguments?.getLong(ARG_NUMERO)}"
+                                else -> pantalla.titulo
+                            },
                             rol = rol,
                             nombre = nombre,
                             email = email,
                             sinLeer = modeloAvisos.sinLeer,
-                            alVolver = if (enAvisos) ({ navegacion.popBackStack() }) else null,
-                            alAbrirMenu = if (pestanas == null && !enAvisos) ({ alcance.launch { cajon.open() } }) else null,
+                            alVolver = if (enSubpantalla) ({ navegacion.popBackStack() }) else null,
+                            alAbrirMenu = if (pestanas == null && !enSubpantalla) ({ alcance.launch { cajon.open() } }) else null,
                             alAbrirAvisos = if (rol.recibeAvisos && !enAvisos) ({ navegacion.navigate(RUTA_AVISOS) { launchSingleTop = true } }) else null,
                             alIngresar = { alPedirIngreso(null, pantalla) },
                             alCerrarSesion = alCerrarSesion,
@@ -210,7 +216,7 @@ fun Panel(
                     }
                 },
                 bottomBar = {
-                    if (pestanas != null && !enDetalle && !enAvisos) {
+                    if (pestanas != null && !enDetalle && !enSubpantalla) {
                         BarraInferior(pestanas, pantalla, unidadesCarrito) { navegacion.abrirSeccion(it) }
                     }
                 },
@@ -229,18 +235,21 @@ fun Panel(
                 ) {
                     Pantalla.entries.forEach { p ->
                         composable(p.name) { entradaPantalla ->
-                            Contenido(p, sesion, rol, nombre, email, navegacion, entradaPantalla, destacada, alPedirIngreso)
+                            Contenido(p, sesion, rol, nombre, email, navegacion, entradaPantalla, alPedirIngreso)
                         }
                     }
                     composable(RUTA_SOLICITUD_EMPRESA, arguments = listOf(navArgument(ARG_NUMERO) { type = NavType.LongType })) { e ->
                         PantallaDetalleSolicitudEmpresa(
                             numero = e.arguments?.getLong(ARG_NUMERO) ?: 0,
                             esAdmin = rol == Rol.ADMIN,
-                            empresa = modeloEmpresa(navegacion, e),
+                            empresa = modeloDelGrafo(navegacion, e),
                             alVolver = { navegacion.popBackStack() },
                         )
                     }
                     composable(RUTA_AVISOS) { PantallaAvisos(modeloAvisos, alAbrir = ::abrirSolicitud) }
+                    composable(RUTA_MI_SOLICITUD, arguments = listOf(navArgument(ARG_NUMERO) { type = NavType.LongType })) { e ->
+                        PantallaDetalleCotizacion(numero = e.arguments?.getLong(ARG_NUMERO) ?: 0, vm = modeloDelGrafo(navegacion, e))
+                    }
                 }
             }
         }
@@ -309,11 +318,11 @@ private fun BarraInferior(pestanas: List<Pantalla>, actual: Pantalla, unidadesCa
 }
 
 /**
- * Modelo de las solicitudes de empresa, compartido por la lista y el detalle: vive en el grafo de navegación (y
- * se descarta al cambiar de cuenta, que crea una navegación nueva).
+ * Modelo compartido por una lista y su detalle (solicitudes de empresa, Mis cotizaciones): vive en el grafo de
+ * navegación (y se descarta al cambiar de cuenta, que crea una navegación nueva).
  */
 @Composable
-private fun modeloEmpresa(navegacion: NavHostController, entrada: NavBackStackEntry): SolicitudesEmpresaViewModel {
+private inline fun <reified M : ViewModel> modeloDelGrafo(navegacion: NavHostController, entrada: NavBackStackEntry): M {
     val grafo = remember(entrada) { navegacion.getBackStackEntry(navegacion.graph.id) }
     return viewModel(grafo)
 }
@@ -327,7 +336,6 @@ private fun Contenido(
     email: String,
     navegacion: NavHostController,
     entrada: NavBackStackEntry,
-    destacada: Long?,
     alPedirIngreso: (motivo: String?, volverA: Pantalla?) -> Unit,
 ) {
     val abrir: (Pantalla) -> Unit = { navegacion.abrir(it) }
@@ -361,12 +369,12 @@ private fun Contenido(
                 "Ingresar",
             ) { alPedirIngreso(null, Pantalla.MIS_COTIZACIONES) }
         } else {
-            PantallaMisCotizaciones(abrir, destacar = destacada)
+            PantallaMisCotizaciones(abrir, vm = modeloDelGrafo(navegacion, entrada), alAbrir = { navegacion.navigate(rutaMiSolicitud(it)) })
         }
         Pantalla.PROVEEDORES -> PantallaProveedores(esAdmin = rol == Rol.ADMIN)
         Pantalla.SOLICITUDES -> PantallaSolicitudesEmpresa(
             esAdmin = rol == Rol.ADMIN,
-            vm = modeloEmpresa(navegacion, entrada),
+            vm = modeloDelGrafo(navegacion, entrada),
             alAbrir = { navegacion.navigate(rutaSolicitudEmpresa(it)) },
         )
         Pantalla.MI_PERFIL -> PantallaMiPerfil()

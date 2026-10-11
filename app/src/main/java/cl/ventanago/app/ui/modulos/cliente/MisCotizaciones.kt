@@ -1,94 +1,64 @@
 package cl.ventanago.app.ui.modulos.cliente
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Chat
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.outlined.Call
-import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.History
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import cl.ventanago.app.datos.Oferta
 import cl.ventanago.app.datos.Solicitud
-import cl.ventanago.app.datos.mensaje
 import cl.ventanago.app.datos.nombreServicio
 import cl.ventanago.app.datos.ofertaElegida
 import cl.ventanago.app.datos.ofertasValidas
 import cl.ventanago.app.datos.pesos
 import cl.ventanago.app.ui.Colores
-import cl.ventanago.app.ui.comun.CampoTexto
-import cl.ventanago.app.ui.comun.DialogoConfirmar
 import cl.ventanago.app.ui.comun.EstadoCargando
 import cl.ventanago.app.ui.comun.EstadoError
 import cl.ventanago.app.ui.comun.EstadoMensaje
-import cl.ventanago.app.ui.comun.MensajeError
 import cl.ventanago.app.ui.comun.MostrarAvisos
-import cl.ventanago.app.ui.comun.escribirCorreo
 import cl.ventanago.app.ui.comun.fechaLegible
-import cl.ventanago.app.ui.comun.llamar
-import cl.ventanago.app.ui.modulos.Etiqueta
-import cl.ventanago.app.ui.modulos.mercado.DialogoChat
-import cl.ventanago.app.ui.modulos.mercado.DialogoProveedor
-import cl.ventanago.app.ui.modulos.mercado.Estrellas
 import cl.ventanago.app.ui.modulos.mercado.EtiquetaEstadoSolicitud
-import cl.ventanago.app.ui.modulos.mercado.FotosSolicitud
-import cl.ventanago.app.ui.modulos.mercado.NombreProveedor
-import cl.ventanago.app.ui.modulos.mercado.SelectorEstrellas
 import cl.ventanago.app.ui.navegacion.Pantalla
-import cl.ventanago.app.ventana.medidasCm
 
 /**
- * Mis cotizaciones: cada solicitud con las ofertas de los proveedores para compararlas, conversar con ellos y
- * elegir una. Con el trabajo hecho, el cliente valora al proveedor. [destacar]: solicitud que se abre desplegada
- * (la de una notificación que se tocó).
+ * Mis cotizaciones: un resumen de cada solicitud del cliente (lo pedido, en qué paso va y cuántas ofertas tiene).
+ * Al tocar una se abre su detalle ([alAbrir] recibe el número), donde se comparan y eligen las ofertas.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaMisCotizaciones(abrir: (Pantalla) -> Unit, destacar: Long? = null, vm: MisCotizacionesViewModel = viewModel()) {
+fun PantallaMisCotizaciones(abrir: (Pantalla) -> Unit, vm: MisCotizacionesViewModel, alAbrir: (Long) -> Unit) {
     MostrarAvisos(vm)
-    val trabajando = vm.trabajando
     val lista = vm.solicitudes
     when {
         lista == null && vm.error != null -> EstadoError(vm.error!!) { vm.reintentar() }
@@ -98,278 +68,183 @@ fun PantallaMisCotizaciones(abrir: (Pantalla) -> Unit, destacar: Long? = null, v
             "Cuando envíes tu carrito, los proveedores de tu zona te harán ofertas y las verás aquí.", "Diseñar ventana",
         ) { abrir(Pantalla.DISENAR_VENTANA) }
         else -> PullToRefreshBox(isRefreshing = vm.refrescando, onRefresh = { vm.cargar(manual = true) }, modifier = Modifier.fillMaxSize()) {
-            val estadoLista = rememberLazyListState()
-            LaunchedEffect(destacar, lista.size) {
-                val i = lista.indexOfFirst { it.numero == destacar }
-                if (i >= 0) estadoLista.animateScrollToItem(i + 1)
-            }
-            LazyColumn(state = estadoLista, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
+            LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxSize()) {
                 item {
-                    Text("Compara las ofertas, conversa con los proveedores y elige la que más te convenga. Desliza hacia abajo para actualizar.", color = Colores.gris)
+                    Text("Toca una solicitud para comparar sus ofertas y elegir. Desliza hacia abajo para actualizar.", color = Colores.gris)
                 }
-                items(lista, key = { it.numero }) { s ->
-                    TarjetaSolicitud(
-                        s,
-                        abiertaAlInicio = s.numero == destacar,
-                        alChat = { o -> vm.chat = o to (o.estado != "DESCARTADA" && s.estado != "CANCELADA") },
-                        alVerProveedor = { vm.proveedor = it },
-                        alElegir = { o -> vm.porElegir = s to o },
-                        alCancelar = { vm.porCancelar = s },
-                        alValorar = { vm.porValorar = s },
-                    )
-                }
+                items(lista, key = { it.numero }) { s -> TarjetaSolicitud(s) { alAbrir(s.numero) } }
             }
         }
-    }
-
-    vm.chat?.let { (o, abierta) ->
-        DialogoChat(o.id, o.proveedor?.nombre ?: "Proveedor", abierta) { vm.cerrarChat() }
-    }
-    vm.proveedor?.let { DialogoProveedor(it) { vm.proveedor = null } }
-    vm.porElegir?.let { (s, o) ->
-        AlertDialog(
-            onDismissRequest = { if (!trabajando) vm.porElegir = null },
-            title = { Text("¿Elegir a ${o.proveedor?.nombre ?: "este proveedor"}?") },
-            text = {
-                Text(
-                    "Aceptarás su oferta de ${o.total?.let { pesos(it) } ?: "—"}. Le enviaremos tus datos de contacto para coordinar, " +
-                        "y avisaremos a los demás proveedores que elegiste otra oferta.",
-                )
-            },
-            confirmButton = {
-                Button(onClick = { vm.elegir(s, o) }, enabled = !trabajando) {
-                    if (trabajando) CircularProgressIndicator(Modifier.size(18.dp), color = LocalContentColor.current, strokeWidth = 2.dp) else Text("Elegir oferta")
-                }
-            },
-            dismissButton = { TextButton(onClick = { vm.porElegir = null }, enabled = !trabajando) { Text("Volver") } },
-        )
-    }
-    vm.porCancelar?.let { s ->
-        DialogoConfirmar(
-            titulo = "¿Cancelar la solicitud N° ${s.numero}?",
-            mensaje = "Los proveedores ya no podrán ofertar y avisaremos a quienes te enviaron ofertas.",
-            textoConfirmar = "Cancelar solicitud",
-            procesando = trabajando,
-            alConfirmar = { vm.cancelar(s) },
-            alCancelar = { if (!trabajando) vm.porCancelar = null },
-        )
-    }
-    vm.porValorar?.let { s ->
-        DialogoValorar(s, trabajando, alCerrar = { if (!trabajando) vm.porValorar = null }) { estrellas, comentario -> vm.valorar(s, estrellas, comentario) }
     }
 }
 
 @Composable
-private fun TarjetaSolicitud(
-    s: Solicitud,
-    abiertaAlInicio: Boolean,
-    alChat: (Oferta) -> Unit,
-    alVerProveedor: (Long) -> Unit,
-    alElegir: (Oferta) -> Unit,
-    alCancelar: () -> Unit,
-    alValorar: () -> Unit,
-) {
-    val context = LocalContext.current
-    var abierta by remember(abiertaAlInicio) { mutableStateOf(abiertaAlInicio) }
-    val validas = s.ofertasValidas().sortedBy { it.total ?: Long.MAX_VALUE }
-    val elegida = s.ofertaElegida()
-    val masBarata = validas.firstOrNull()?.total
-
+private fun TarjetaSolicitud(s: Solicitud, alTocar: () -> Unit) {
     Card(
+        onClick = alTocar,
         colors = CardDefaults.cardColors(containerColor = Colores.superficie),
-        border = BorderStroke(1.dp, Colores.borde),
-        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = MaterialTheme.shapes.large,
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Solicitud N° ${s.numero}", fontWeight = FontWeight.Bold)
+                    Text("Solicitud N° ${s.numero}", style = MaterialTheme.typography.titleMedium, color = Colores.textoFuerte)
                     Text(
-                        listOfNotNull(fechaLegible(s.fecha?.take(10)), s.comuna?.nombre, s.servicios.joinToString(", ") { nombreServicio(it) })
-                            .filter { it.isNotBlank() }.joinToString(" · "),
+                        listOfNotNull(fechaLegible(s.fecha?.take(10)), s.comuna?.nombre).filter { it.isNotBlank() }.joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall, color = Colores.gris,
                     )
                 }
                 EtiquetaEstadoSolicitud(s.estado)
             }
-
-            // Resumen de lo pedido, desplegable
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    if (s.items.isEmpty()) "Servicio sin ventanas" else "${s.items.sumOf { it.cantidad }} ventana(s) · ${s.items.size} tipo(s)",
-                    style = MaterialTheme.typography.bodyMedium, color = Colores.textoSecundario, modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = { abierta = !abierta }) {
-                    Text(if (abierta) "Ocultar" else "Ver lo pedido")
-                    Icon(if (abierta) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, contentDescription = null)
-                }
-            }
-            AnimatedVisibility(abierta) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    s.items.forEach { FilaItem(it) }
-                    s.observaciones?.takeIf { it.isNotBlank() }?.let {
-                        Text(if (s.items.isEmpty()) it else "Tus comentarios: $it", style = MaterialTheme.typography.bodySmall, color = Colores.textoSecundario)
-                    }
-                    FotosSolicitud(s.numero, s.fotos)
-                }
-            }
-
-            when (s.estado) {
-                "PENDIENTE" -> {
-                    if (validas.isEmpty()) {
-                        Surface(color = Colores.fondo, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                "Esperando ofertas. Te avisaremos cuando un proveedor responda.",
-                                style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(10.dp),
-                            )
-                        }
-                    } else {
-                        Text(
-                            "${validas.size} ${if (validas.size == 1) "oferta" else "ofertas"} · de menor a mayor precio",
-                            style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
-                        )
-                        validas.forEach { o ->
-                            TarjetaOferta(
-                                o, s, destacada = validas.size > 1 && o.total == masBarata,
-                                alChat = { alChat(o) }, alVerProveedor = alVerProveedor, alElegir = { alElegir(o) },
-                            )
-                        }
-                    }
-                    val noTomaron = s.ofertas.orEmpty().count { it.tipo == "RECHAZADA" }
-                    if (noTomaron > 0) {
-                        Text("$noTomaron proveedor(es) no pueden tomar este trabajo.", style = MaterialTheme.typography.bodySmall, color = Colores.gris)
-                    }
-                    TextButton(onClick = alCancelar) { Text("Cancelar solicitud", color = Colores.error) }
-                }
-                "ADJUDICADA", "TERMINADA" -> elegida?.let { o ->
-                    TarjetaOferta(o, s, destacada = false, alChat = { alChat(o) }, alVerProveedor = alVerProveedor, alElegir = null)
-                    o.contactoProveedor?.let { c ->
-                        Surface(color = Colores.azulClaro, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("Contacto de ${c.nombre}", fontWeight = FontWeight.SemiBold)
-                                Text(listOf(c.email, c.telefono).filter { it.isNotBlank() }.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    if (c.telefono.isNotBlank()) {
-                                        OutlinedButton(onClick = { context.llamar(c.telefono) }) {
-                                            Icon(Icons.Outlined.Call, contentDescription = null)
-                                            Text(" Llamar")
-                                        }
-                                    }
-                                    OutlinedButton(onClick = { context.escribirCorreo(c.email) }) {
-                                        Icon(Icons.Outlined.Email, contentDescription = null)
-                                        Text(" Escribir")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (s.estado == "ADJUDICADA") {
-                        Button(onClick = alValorar, modifier = Modifier.fillMaxWidth()) { Text("El trabajo está listo: valorar") }
-                        TextButton(onClick = alCancelar) { Text("Cancelar solicitud", color = Colores.error) }
-                    }
-                    s.valoracion?.let { v ->
-                        Surface(color = Colores.exitoFondo, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(10.dp)) {
-                                Text("Tu valoración: ${"★".repeat(v.estrellas)}${"☆".repeat(5 - v.estrellas)}", fontWeight = FontWeight.SemiBold)
-                                v.comentario?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                            }
-                        }
-                    }
-                }
-                "CANCELADA" -> Text("Cancelaste esta solicitud.", style = MaterialTheme.typography.bodyMedium, color = Colores.gris)
+            LoPedido(s)
+            SeguimientoCompacto(s)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val (texto, color) = resumenEstado(s)
+                Text(texto, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = color, modifier = Modifier.weight(1f))
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Colores.gris)
             }
         }
     }
 }
 
-/** Una oferta para comparar: proveedor con su nota, total, plazo y las ventanas con su precio. */
+/** Miniaturas de las ventanas pedidas (hasta tres) o, sin ventanas, los servicios. */
 @Composable
-private fun TarjetaOferta(
-    o: Oferta,
-    s: Solicitud,
-    destacada: Boolean,
-    alChat: () -> Unit,
-    alVerProveedor: (Long) -> Unit,
-    alElegir: (() -> Unit)?,
-) {
-    var detalle by remember { mutableStateOf(false) }
-    Surface(
-        color = if (o.estado == "ELEGIDA") Colores.exitoFondo else Colores.fondo,
-        shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(if (destacada) 2.dp else 1.dp, if (destacada) Colores.exito else Colores.borde),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            o.proveedor?.let { p ->
+private fun LoPedido(s: Solicitud) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (s.items.isEmpty()) {
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .background(Colores.superficieTenue, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center,
+            ) { Icon(Icons.Outlined.Build, contentDescription = null, tint = Colores.gris) }
+            Spacer(Modifier.width(10.dp))
+            Text(
+                s.servicios.joinToString(", ") { nombreServicio(it) }.ifBlank { "Servicio sin ventanas" },
+                style = MaterialTheme.typography.bodyMedium, color = Colores.textoSecundario, maxLines = 2, overflow = TextOverflow.Ellipsis,
+            )
+            return@Row
+        }
+        s.items.take(3).forEach {
+            MiniVentana(it, Modifier.size(44.dp))
+            Spacer(Modifier.width(6.dp))
+        }
+        if (s.items.size > 3) {
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .background(Colores.superficieTenue, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center,
+            ) { Text("+${s.items.size - 3}", style = MaterialTheme.typography.labelLarge, color = Colores.textoSecundario) }
+            Spacer(Modifier.width(6.dp))
+        }
+        val unidades = s.items.sumOf { it.cantidad }
+        Text(
+            "$unidades ${if (unidades == 1) "ventana" else "ventanas"}",
+            style = MaterialTheme.typography.bodyMedium, color = Colores.textoSecundario, modifier = Modifier.padding(start = 4.dp),
+        )
+    }
+}
+
+/** La línea que resume en qué va la solicitud, con su color. */
+@Composable
+private fun resumenEstado(s: Solicitud): Pair<String, Color> {
+    val validas = s.ofertasValidas()
+    return when (s.estado) {
+        "ADJUDICADA" -> "Elegiste a ${s.ofertaElegida()?.proveedor?.nombre ?: "un proveedor"}" +
+            (s.ofertaElegida()?.total?.let { " · ${pesos(it)}" } ?: "") to Colores.azul
+        "TERMINADA" -> (s.valoracion?.let { "Trabajo terminado · ${"★".repeat(it.estrellas)}" } ?: "Trabajo terminado") to Colores.exito
+        "CANCELADA" -> "Cancelaste esta solicitud" to Colores.gris
+        else -> if (validas.isEmpty()) {
+            "Esperando ofertas de los proveedores" to Colores.gris
+        } else {
+            val desde = validas.mapNotNull { it.total }.minOrNull()
+            "${validas.size} ${if (validas.size == 1) "oferta" else "ofertas"}" + (desde?.let { " · desde ${pesos(it)}" } ?: "") to Colores.exito
+        }
+    }
+}
+
+// ---------- Seguimiento ----------
+
+/** Pasos por los que pasa una solicitud del cliente. */
+internal val PASOS = listOf("Enviada", "Ofertas", "Elegido", "Terminado")
+
+/** Cuántos [PASOS] están cumplidos (1 a 4). Una cancelada queda en el paso en que se canceló. */
+internal fun pasosCumplidos(s: Solicitud) = when (s.estado) {
+    "TERMINADA" -> 4
+    "ADJUDICADA" -> 3
+    else -> if (s.ofertasValidas().isNotEmpty()) 2 else 1
+}
+
+/** Barra de cuatro tramos: los cumplidos en azul (gris si se canceló). */
+@Composable
+private fun SeguimientoCompacto(s: Solicitud) {
+    val cumplidos = pasosCumplidos(s)
+    val color = if (s.estado == "CANCELADA") Colores.gris else Colores.azul
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+        PASOS.indices.forEach { i ->
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(6.dp)
+                    .background(if (i < cumplidos) color else Colores.borde, RoundedCornerShape(3.dp)),
+            )
+        }
+    }
+}
+
+/** Los cuatro pasos con su nombre: cumplidos con un visto, el siguiente marcado, los demás en gris. */
+@Composable
+internal fun Seguimiento(s: Solicitud) {
+    val cumplidos = pasosCumplidos(s)
+    val cancelada = s.estado == "CANCELADA"
+    val color = if (cancelada) Colores.gris else Colores.azul
+    Row(Modifier.fillMaxWidth()) {
+        PASOS.forEachIndexed { i, paso ->
+            val hecho = i < cumplidos
+            val actual = i == cumplidos && !cancelada
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    NombreProveedor(p, Modifier.weight(1f))
-                    if (destacada) Etiqueta("Mejor precio", Colores.exitoFondo, Colores.exito)
-                    if (o.estado == "ELEGIDA") Etiqueta("Elegida", Colores.exitoFondo, Colores.exito)
-                }
-                Estrellas(p.promedio, p.valoraciones)
-            }
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(o.total?.let { pesos(it) } ?: "—", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Colores.textoFuerte)
-                Spacer(Modifier.width(8.dp))
-                o.plazoDias?.let { Text("en $it días hábiles", style = MaterialTheme.typography.bodySmall, color = Colores.textoSecundario, modifier = Modifier.padding(bottom = 4.dp)) }
-            }
-            if (o.tipo == "MODIFICADA") {
-                Etiqueta("Propone cambios en medidas o cantidades", Colores.azulClaro, Colores.azul)
-            }
-            o.mensaje?.takeIf { it.isNotBlank() }?.let { Text("“$it”", style = MaterialTheme.typography.bodyMedium) }
-            if (o.items.isNotEmpty()) {
-                TextButton(onClick = { detalle = !detalle }, contentPadding = PaddingValues(0.dp)) {
-                    Text(if (detalle) "Ocultar detalle" else "Ver detalle por ventana")
-                }
-                AnimatedVisibility(detalle) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        o.items.forEach { item ->
-                            val original = s.items.firstOrNull { it.id == item.id }
-                            FilaItem(item)
-                            if (original != null && (original.anchoMm != item.anchoMm || original.altoMm != item.altoMm || original.cantidad != item.cantidad)) {
-                                Text(
-                                    "Pediste ${original.cantidad} × ${medidasCm(original.anchoMm, original.altoMm)}",
-                                    style = MaterialTheme.typography.bodySmall, color = Colores.azul,
-                                )
-                            }
-                        }
+                    // Tramo que une con el paso anterior (y con el siguiente), a cada lado del círculo.
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(2.dp)
+                            .background(if (i == 0) Color.Transparent else if (hecho) color else Colores.borde),
+                    )
+                    Box(
+                        Modifier
+                            .size(28.dp)
+                            .background(
+                                when {
+                                    hecho -> color
+                                    actual -> Colores.azulClaro
+                                    else -> Colores.superficieTenue
+                                },
+                                CircleShape,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (hecho) Icon(Icons.Filled.Check, contentDescription = null, tint = Colores.sobreAzul, modifier = Modifier.size(16.dp))
+                        else Text("${i + 1}", style = MaterialTheme.typography.labelMedium, color = if (actual) Colores.azul else Colores.gris)
                     }
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(2.dp)
+                            .background(if (i == PASOS.lastIndex) Color.Transparent else if (i + 1 < cumplidos) color else Colores.borde),
+                    )
                 }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(onClick = alChat) {
-                    Icon(Icons.AutoMirrored.Outlined.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text(if (o.mensajes > 0) " Chat (${o.mensajes})" else " Preguntar")
-                }
-                o.proveedor?.let { p -> TextButton(onClick = { alVerProveedor(p.cuentaId) }) { Text("Ver perfil") } }
-                Spacer(Modifier.weight(1f))
-                alElegir?.let { Button(onClick = it) { Text("Elegir") } }
+                Text(
+                    paso,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (hecho || actual) Colores.textoFuerte else Colores.gris,
+                    fontWeight = if (actual) FontWeight.SemiBold else FontWeight.Normal,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
             }
         }
     }
-}
-
-@Composable
-private fun DialogoValorar(s: Solicitud, enviando: Boolean, alCerrar: () -> Unit, alEnviar: (Int, String) -> Unit) {
-    var estrellas by remember { mutableIntStateOf(0) }
-    var comentario by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
-    AlertDialog(
-        onDismissRequest = alCerrar,
-        title = { Text("¿Cómo te fue con ${s.ofertaElegida()?.proveedor?.nombre ?: "el proveedor"}?") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Tu valoración ayuda a otros clientes a elegir. La solicitud quedará terminada.", style = MaterialTheme.typography.bodySmall, color = Colores.gris)
-                error?.let { MensajeError(it) }
-                SelectorEstrellas(estrellas) { estrellas = it; error = null }
-                CampoTexto("Comentario (opcional)", comentario, { comentario = it.take(1000) }, lineas = 3)
-            }
-        },
-        confirmButton = {
-            Button(onClick = { if (estrellas == 0) error = "Elige de 1 a 5 estrellas." else alEnviar(estrellas, comentario.trim()) }, enabled = !enviando) {
-                if (enviando) CircularProgressIndicator(Modifier.size(18.dp), color = LocalContentColor.current, strokeWidth = 2.dp) else Text("Enviar valoración")
-            }
-        },
-        dismissButton = { TextButton(onClick = alCerrar, enabled = !enviando) { Text("Más tarde") } },
-    )
 }

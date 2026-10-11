@@ -14,10 +14,16 @@ const val RUTA_AVISOS = "avisos"
 
 fun rutaSolicitudEmpresa(numero: Long) = "solicitud/$numero"
 
-/** Pantalla del menú que corresponde a una ruta (el detalle de una solicitud cuenta como Solicitudes). */
+/** Detalle de una solicitud del cliente (desde Mis cotizaciones o al tocar un aviso). */
+const val RUTA_MI_SOLICITUD = "cotizacion/{numero}"
+
+fun rutaMiSolicitud(numero: Long) = "cotizacion/$numero"
+
+/** Pantalla del menú que corresponde a una ruta (el detalle de una solicitud cuenta como su lista). */
 fun pantallaDeRuta(ruta: String?): Pantalla? = when {
     ruta == null -> null
     ruta == RUTA_SOLICITUD_EMPRESA -> Pantalla.SOLICITUDES
+    ruta == RUTA_MI_SOLICITUD -> Pantalla.MIS_COTIZACIONES
     else -> Pantalla.entries.firstOrNull { it.name == ruta }
 }
 
