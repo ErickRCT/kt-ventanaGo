@@ -18,8 +18,10 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import cl.ventanago.app.datos.Autenticacion
 import cl.ventanago.app.datos.CarritoLocal
 import cl.ventanago.app.notificaciones.Push
-import cl.ventanago.app.ui.PantallaLogin
 import cl.ventanago.app.ui.ModoTema
+import cl.ventanago.app.ui.PantallaLogin
+import cl.ventanago.app.ui.PantallaPresentacion
+import cl.ventanago.app.ui.Presentacion
 import cl.ventanago.app.ui.TemaVentanaGo
 import cl.ventanago.app.ui.enModoOscuro
 import cl.ventanago.app.ui.navegacion.Panel
@@ -48,6 +50,17 @@ class MainActivity : ComponentActivity() {
             TemaVentanaGo(oscuro) {
                 val autenticacion = remember { Autenticacion(applicationContext) }
                 val sesion = autenticacion.sesion
+                // La primera vez que se abre la app sin cuenta, una presentación de tres pasos (una sola vez por teléfono).
+                var conPresentacion by rememberSaveable {
+                    mutableStateOf(sesion == null && solicitudNotificada == null && !Presentacion.vista(applicationContext))
+                }
+                if (conPresentacion) {
+                    PantallaPresentacion {
+                        Presentacion.marcarVista(applicationContext)
+                        conPresentacion = false
+                    }
+                    return@TemaVentanaGo
+                }
                 // Sin sesión la app abre en Diseñar ventana; el login se muestra solo cuando se necesita.
                 var pidiendoIngreso by rememberSaveable { mutableStateOf(false) }
                 var motivoIngreso by rememberSaveable { mutableStateOf<String?>(null) }

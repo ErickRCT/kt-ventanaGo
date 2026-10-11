@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -71,7 +72,12 @@ fun ImagenCatalogo(ruta: String?, modifier: Modifier = Modifier, tamano: Dp = 56
                 model = url,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                loading = { CircularProgressIndicator(Modifier.padding(tamano / 4), strokeWidth = 2.dp) },
+                loading = {
+                    // Ruedita proporcional a la imagen; si ocupa lo que diga el contenedor, de tamaño fijo y centrada.
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(if (tamano.isSpecified) Modifier.padding(tamano / 4) else Modifier.size(28.dp), strokeWidth = 2.dp)
+                    }
+                },
                 error = { Icon(Icons.Outlined.ImageNotSupported, contentDescription = null, tint = Colores.gris) },
                 modifier = Modifier.fillMaxWidth(),
             )
