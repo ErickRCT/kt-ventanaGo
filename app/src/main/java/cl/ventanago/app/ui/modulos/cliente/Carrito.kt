@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Handyman
 import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -207,7 +208,7 @@ private fun FormularioCarrito(vm: CarritoViewModel, lista: List<ItemVentana>, ab
                 .height(50.dp),
         ) {
             if (ocupado != null) {
-                CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
+                CircularProgressIndicator(Modifier.size(22.dp), color = LocalContentColor.current, strokeWidth = 2.dp)
                 Text("  $ocupado")
             } else {
                 Text(if (vm.conCuenta) "Enviar solicitud" else "Ingresar y enviar solicitud")
@@ -223,7 +224,7 @@ private fun FormularioCarrito(vm: CarritoViewModel, lista: List<ItemVentana>, ab
 private fun VentanasDelCarrito(vm: CarritoViewModel, lista: List<ItemVentana>, abrir: (Pantalla) -> Unit) {
     val libre = vm.ocupado == null
     lista.forEach { item ->
-        Card(colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, Colores.borde), shape = RoundedCornerShape(12.dp)) {
+        Card(colors = CardDefaults.cardColors(containerColor = Colores.superficie), border = BorderStroke(1.dp, Colores.borde), shape = RoundedCornerShape(12.dp)) {
             Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 MiniVentana(item, Modifier.size(64.dp))
                 Spacer(Modifier.width(10.dp))
@@ -255,7 +256,7 @@ private fun VentanasDelCarrito(vm: CarritoViewModel, lista: List<ItemVentana>, a
     rangoReferencial(lista, vm.precioReferencia)?.let { (desde, hasta) ->
         Surface(color = Colores.azulClaro, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(12.dp)) {
-                Text("Precio referencial: entre ${pesos(desde)} y ${pesos(hasta)}", fontWeight = FontWeight.SemiBold, color = Colores.menuFondo)
+                Text("Precio referencial: entre ${pesos(desde)} y ${pesos(hasta)}", fontWeight = FontWeight.SemiBold, color = Colores.textoFuerte)
                 Text(
                     "Según el precio por m² de ${vm.precioReferencia?.muestras} ventanas cotizadas en VentanaGo. El precio real lo dan las ofertas.",
                     style = MaterialTheme.typography.bodySmall,

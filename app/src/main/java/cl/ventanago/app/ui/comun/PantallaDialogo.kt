@@ -18,7 +18,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import cl.ventanago.app.ui.Colores
@@ -34,7 +33,7 @@ fun PantallaDialogo(titulo: String, alCerrar: () -> Unit, contenido: @Composable
                 TopAppBar(
                     title = { Text(titulo, maxLines = 1) },
                     navigationIcon = { IconButton(onClick = alCerrar) { Icon(Icons.Filled.Close, contentDescription = "Cerrar") } },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Colores.azul, titleContentColor = Color.White, navigationIconContentColor = Color.White),
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Colores.barra, titleContentColor = Colores.sobreBarra, navigationIconContentColor = Colores.sobreBarra, actionIconContentColor = Colores.sobreBarra),
                 )
             },
             containerColor = MaterialTheme.colorScheme.background,

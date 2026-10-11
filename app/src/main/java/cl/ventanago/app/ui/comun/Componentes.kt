@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -57,7 +58,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -228,20 +228,20 @@ fun FormularioPantalla(
                                 Modifier
                                     .padding(end = 16.dp)
                                     .size(24.dp),
-                                color = Color.White,
+                                color = Colores.sobreBarra,
                                 strokeWidth = 2.dp,
                             )
                         } else {
                             TextButton(onClick = alGuardar) {
-                                Text(textoGuardar.uppercase(), color = Color.White, fontWeight = FontWeight.Bold)
+                                Text(textoGuardar.uppercase(), color = Colores.sobreBarra, fontWeight = FontWeight.Bold)
                             }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Colores.azul,
-                        titleContentColor = Color.White,
-                        navigationIconContentColor = Color.White,
-                        actionIconContentColor = Color.White,
+                        containerColor = Colores.barra,
+                        titleContentColor = Colores.sobreBarra,
+                        navigationIconContentColor = Colores.sobreBarra,
+                        actionIconContentColor = Colores.sobreBarra,
                     ),
                 )
             },
@@ -277,11 +277,11 @@ fun FormularioPantalla(
 
 @Composable
 fun MensajeError(texto: String) {
-    Surface(color = Color(0xFFFDECEA), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(color = Colores.errorFondo, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = Colores.error)
             Spacer(Modifier.width(10.dp))
-            Text(texto, color = Color(0xFF5F2120), style = MaterialTheme.typography.bodyMedium)
+            Text(texto, color = Colores.errorTexto, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -305,7 +305,7 @@ fun DialogoConfirmar(
                 enabled = !procesando,
                 colors = ButtonDefaults.buttonColors(containerColor = Colores.error),
             ) {
-                if (procesando) CircularProgressIndicator(Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+                if (procesando) CircularProgressIndicator(Modifier.size(18.dp), color = LocalContentColor.current, strokeWidth = 2.dp)
                 else Text(textoConfirmar)
             }
         },

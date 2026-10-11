@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,7 +45,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -101,7 +101,7 @@ fun PantallaDetalleSolicitudEmpresa(numero: Long, esAdmin: Boolean, empresa: Sol
                 title = { Text("Solicitud N° $numero") },
                 navigationIcon = { IconButton(onClick = alVolver) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") } },
                 actions = { if (s != null) Row(Modifier.padding(end = 12.dp)) { if (esAdmin) EtiquetaEstadoSolicitud(s.estado) else EtiquetaOferta(s) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Colores.azul, titleContentColor = Color.White, navigationIconContentColor = Color.White),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Colores.barra, titleContentColor = Colores.sobreBarra, navigationIconContentColor = Colores.sobreBarra, actionIconContentColor = Colores.sobreBarra),
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -334,7 +334,7 @@ private fun FormularioOferta(vm: OfertaViewModel, alEnviar: () -> Unit) {
             .fillMaxWidth()
             .height(50.dp),
     ) {
-        if (vm.enviando) CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
+        if (vm.enviando) CircularProgressIndicator(Modifier.size(22.dp), color = LocalContentColor.current, strokeWidth = 2.dp)
         else Text(
             when (accion) {
                 "ACEPTADA" -> "Enviar oferta"
@@ -347,7 +347,7 @@ private fun FormularioOferta(vm: OfertaViewModel, alEnviar: () -> Unit) {
 
 @Composable
 private fun ResumenOferta(o: Oferta) {
-    o.total?.let { Text("Total: ${pesos(it)}" + (o.plazoDias?.let { d -> " · $d días hábiles" } ?: ""), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Colores.menuFondo) }
+    o.total?.let { Text("Total: ${pesos(it)}" + (o.plazoDias?.let { d -> " · $d días hábiles" } ?: ""), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Colores.textoFuerte) }
     o.mensaje?.takeIf { it.isNotBlank() }?.let { Text("“$it”", style = MaterialTheme.typography.bodyMedium) }
     o.items.forEach { FilaItem(it, tamano = 48.dp, conObservaciones = true, sufijoPrecio = "") }
     Text("Enviada el ${fechaLegible(o.fecha?.take(10))}", style = MaterialTheme.typography.bodySmall, color = Colores.gris)

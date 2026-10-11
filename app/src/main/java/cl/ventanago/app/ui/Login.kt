@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Pin
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -185,24 +186,24 @@ fun PantallaLogin(autenticacion: Autenticacion, motivo: String? = null, alVolver
             Box(
                 Modifier
                     .size(84.dp)
-                    .background(Colores.azul, RoundedCornerShape(22.dp)),
+                    .background(Colores.marca, RoundedCornerShape(22.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Image(painterResource(R.drawable.ic_launcher_foreground), contentDescription = null, modifier = Modifier.size(84.dp))
             }
             Spacer(Modifier.height(16.dp))
-            Text("VentanaGo", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Colores.menuFondo)
+            Text("VentanaGo", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Colores.textoFuerte)
             Text("Diseña, mira en tu pared y cotiza tus ventanas", color = Colores.gris, textAlign = TextAlign.Center)
             motivo?.let {
                 Spacer(Modifier.height(16.dp))
                 Surface(color = Colores.azulClaro, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    Text(it, color = Colores.menuFondo, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(12.dp))
+                    Text(it, color = Colores.textoFuerte, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(12.dp))
                 }
             }
             Spacer(Modifier.height(24.dp))
 
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = Colores.superficie),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth(),
@@ -336,7 +337,7 @@ private fun Boton(texto: String, cargando: Boolean, alPulsar: () -> Unit) {
             .fillMaxWidth()
             .height(50.dp),
     ) {
-        if (cargando) CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
+        if (cargando) CircularProgressIndicator(Modifier.size(22.dp), color = LocalContentColor.current, strokeWidth = 2.dp)
         else Text(texto)
     }
 }

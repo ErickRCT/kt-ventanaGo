@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -39,7 +38,7 @@ fun MiniVentana(item: ItemVentana, modifier: Modifier = Modifier) {
             colorMarco = colorMarco(item.colorNombre), colorVidrio = colorVidrio(item.vidrioNombre),
         )
     }
-    Box(modifier.background(Color(0xFFEFF2F6), RoundedCornerShape(8.dp)).padding(4.dp)) {
+    Box(modifier.background(Colores.superficieTenue, RoundedCornerShape(8.dp)).padding(4.dp)) {
         DibujoVentana(config, Modifier.fillMaxSize())
     }
 }

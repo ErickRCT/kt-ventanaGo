@@ -33,7 +33,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -90,7 +89,7 @@ fun PantallaPautas() = Mantenedor(
             Etiqueta("${p.perfiles.orEmpty().size} perfiles", Colores.fondo, Colores.textoSecundario)
             Etiqueta("${p.quincallerias.orEmpty().size} quinc.", Colores.fondo, Colores.textoSecundario)
             Etiqueta("${p.vidrios.orEmpty().size} vidrios", Colores.fondo, Colores.textoSecundario)
-            if (p.isReforzada == true) Etiqueta("Reforzada", Color(0xFFFFF4E5), Color(0xFF8A5300))
+            if (p.isReforzada == true) Etiqueta("Reforzada", Colores.avisoFondo, Colores.aviso)
         }
     }
 }
@@ -158,7 +157,7 @@ private fun CampoNumero(
 @Composable
 private fun Seccion(numero: Int, titulo: String, descripcion: String, contenido: @Composable ColumnScope.() -> Unit) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Colores.superficie),
         border = BorderStroke(1.dp, Colores.borde),
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),
@@ -168,7 +167,7 @@ private fun Seccion(numero: Int, titulo: String, descripcion: String, contenido:
                 Surface(color = Colores.azul, shape = RoundedCornerShape(50)) {
                     Text(
                         "$numero",
-                        color = Color.White,
+                        color = Colores.sobreAzul,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),

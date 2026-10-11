@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -45,7 +46,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -138,7 +138,7 @@ fun PantallaMisCotizaciones(abrir: (Pantalla) -> Unit, destacar: Long? = null, v
             },
             confirmButton = {
                 Button(onClick = { vm.elegir(s, o) }, enabled = !trabajando) {
-                    if (trabajando) CircularProgressIndicator(Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp) else Text("Elegir oferta")
+                    if (trabajando) CircularProgressIndicator(Modifier.size(18.dp), color = LocalContentColor.current, strokeWidth = 2.dp) else Text("Elegir oferta")
                 }
             },
             dismissButton = { TextButton(onClick = { vm.porElegir = null }, enabled = !trabajando) { Text("Volver") } },
@@ -176,7 +176,7 @@ private fun TarjetaSolicitud(
     val masBarata = validas.firstOrNull()?.total
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Colores.superficie),
         border = BorderStroke(1.dp, Colores.borde),
         shape = RoundedCornerShape(12.dp),
     ) {
@@ -268,7 +268,7 @@ private fun TarjetaSolicitud(
                         TextButton(onClick = alCancelar) { Text("Cancelar solicitud", color = Colores.error) }
                     }
                     s.valoracion?.let { v ->
-                        Surface(color = Color(0xFFE8F5E9), shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        Surface(color = Colores.exitoFondo, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(10.dp)) {
                                 Text("Tu valoración: ${"★".repeat(v.estrellas)}${"☆".repeat(5 - v.estrellas)}", fontWeight = FontWeight.SemiBold)
                                 v.comentario?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
@@ -294,7 +294,7 @@ private fun TarjetaOferta(
 ) {
     var detalle by remember { mutableStateOf(false) }
     Surface(
-        color = if (o.estado == "ELEGIDA") Color(0xFFF1F8F1) else Colores.fondo,
+        color = if (o.estado == "ELEGIDA") Colores.exitoFondo else Colores.fondo,
         shape = RoundedCornerShape(10.dp),
         border = BorderStroke(if (destacada) 2.dp else 1.dp, if (destacada) Colores.exito else Colores.borde),
         modifier = Modifier.fillMaxWidth(),
@@ -303,13 +303,13 @@ private fun TarjetaOferta(
             o.proveedor?.let { p ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     NombreProveedor(p, Modifier.weight(1f))
-                    if (destacada) Etiqueta("Mejor precio", Color(0xFFE8F5E9), Colores.exito)
-                    if (o.estado == "ELEGIDA") Etiqueta("Elegida", Color(0xFFE8F5E9), Colores.exito)
+                    if (destacada) Etiqueta("Mejor precio", Colores.exitoFondo, Colores.exito)
+                    if (o.estado == "ELEGIDA") Etiqueta("Elegida", Colores.exitoFondo, Colores.exito)
                 }
                 Estrellas(p.promedio, p.valoraciones)
             }
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(o.total?.let { pesos(it) } ?: "—", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Colores.menuFondo)
+                Text(o.total?.let { pesos(it) } ?: "—", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Colores.textoFuerte)
                 Spacer(Modifier.width(8.dp))
                 o.plazoDias?.let { Text("en $it días hábiles", style = MaterialTheme.typography.bodySmall, color = Colores.textoSecundario, modifier = Modifier.padding(bottom = 4.dp)) }
             }
@@ -367,7 +367,7 @@ private fun DialogoValorar(s: Solicitud, enviando: Boolean, alCerrar: () -> Unit
         },
         confirmButton = {
             Button(onClick = { if (estrellas == 0) error = "Elige de 1 a 5 estrellas." else alEnviar(estrellas, comentario.trim()) }, enabled = !enviando) {
-                if (enviando) CircularProgressIndicator(Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp) else Text("Enviar valoración")
+                if (enviando) CircularProgressIndicator(Modifier.size(18.dp), color = LocalContentColor.current, strokeWidth = 2.dp) else Text("Enviar valoración")
             }
         },
         dismissButton = { TextButton(onClick = alCerrar, enabled = !enviando) { Text("Más tarde") } },

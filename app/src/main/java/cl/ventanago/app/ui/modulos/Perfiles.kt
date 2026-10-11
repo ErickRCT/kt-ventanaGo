@@ -102,7 +102,7 @@ fun PantallaPerfiles() = Mantenedor(
         Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Etiqueta(if (perfil.orientacion == "V") "Vertical" else "Horizontal", Colores.fondo, Colores.textoSecundario)
             if (perfil.isBastidor == true) Etiqueta("Bastidor")
-            if (perfil.reforzado) Etiqueta("Reforzado", Color(0xFFFFF4E5), Color(0xFF8A5300))
+            if (perfil.reforzado) Etiqueta("Reforzado", Colores.avisoFondo, Colores.aviso)
         }
     }
 }

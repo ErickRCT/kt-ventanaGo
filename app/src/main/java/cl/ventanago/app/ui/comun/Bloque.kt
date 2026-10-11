@@ -13,7 +13,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -28,7 +27,7 @@ fun Bloque(
     contenido: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Colores.superficie),
         border = BorderStroke(1.dp, Colores.borde),
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),

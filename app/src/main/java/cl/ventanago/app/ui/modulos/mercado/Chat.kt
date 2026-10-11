@@ -33,7 +33,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cl.ventanago.app.datos.ChatApi
@@ -102,7 +101,7 @@ fun DialogoChat(ofertaId: Long, titulo: String, puedeEscribir: Boolean, alCerrar
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .background(Color.White)
+                        .background(Colores.superficie)
                         .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -149,8 +148,8 @@ fun DialogoChat(ofertaId: Long, titulo: String, puedeEscribir: Boolean, alCerrar
 private fun BurbujaMensaje(m: MensajeChat) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = if (m.mio) Arrangement.End else Arrangement.Start) {
         Surface(
-            color = if (m.mio) Colores.azul else Color.White,
-            contentColor = if (m.mio) Color.White else Colores.texto,
+            color = if (m.mio) Colores.azul else Colores.superficie,
+            contentColor = if (m.mio) Colores.sobreAzul else Colores.texto,
             shape = RoundedCornerShape(14.dp),
             border = if (m.mio) null else BorderStroke(1.dp, Colores.borde),
             modifier = Modifier.widthIn(max = 280.dp),
@@ -161,7 +160,7 @@ private fun BurbujaMensaje(m: MensajeChat) {
                 Text(
                     m.fecha?.let { "${fechaLegible(it.take(10))} ${it.drop(11).take(5)}" }.orEmpty(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (m.mio) Color(0xB3FFFFFF) else Colores.gris,
+                    color = if (m.mio) Colores.sobreAzul.copy(alpha = 0.7f) else Colores.gris,
                 )
             }
         }

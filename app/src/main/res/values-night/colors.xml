@@ -1,0 +1,4 @@
+<resources>
+    <!-- Modo oscuro: fondo de la ventana mientras carga (igual al fondo del tema oscuro). -->
+    <color name="fondo">#0F141B</color>
+</resources>

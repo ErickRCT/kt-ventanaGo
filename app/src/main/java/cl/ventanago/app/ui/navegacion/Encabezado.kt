@@ -35,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -70,7 +69,7 @@ fun Encabezado(
     }
     Column {
         TopAppBar(
-            title = { Text("VentanaGo", fontWeight = FontWeight.Bold, color = Colores.menuFondo) },
+            title = { Text("VentanaGo", fontWeight = FontWeight.Bold, color = Colores.textoFuerte) },
             navigationIcon = {
                 IconButton(onClick = alAbrirMenu) { Icon(Icons.Filled.Menu, contentDescription = "Abrir menú", tint = Colores.textoSecundario) }
             },
@@ -130,7 +129,7 @@ fun Encabezado(
                     }
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Colores.superficie),
         )
         HorizontalDivider(color = Colores.borde)
     }
@@ -142,12 +141,12 @@ internal fun Avatar(nombre: String, modifier: Modifier = Modifier, tamano: Int =
         modifier
             .size(tamano.dp)
             .clip(CircleShape)
-            .background(Colores.texto),
+            .background(Colores.azul),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             nombre.take(2).uppercase(),
-            color = Color.White,
+            color = Colores.sobreAzul,
             fontWeight = FontWeight.SemiBold,
             style = MaterialTheme.typography.labelLarge,
         )

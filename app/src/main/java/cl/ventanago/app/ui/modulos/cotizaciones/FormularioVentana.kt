@@ -27,7 +27,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -157,7 +156,7 @@ fun FormularioVentana(factorVenta: Double, alGuardar: suspend (Ventana) -> Unit,
                     pautas!!.forEach { p ->
                         val elegida = p.pautaId == pauta?.pautaId
                         Surface(
-                            color = if (elegida) Colores.azulClaro else Color.White,
+                            color = if (elegida) Colores.azulClaro else Colores.superficie,
                             shape = RoundedCornerShape(10.dp),
                             border = BorderStroke(if (elegida) 2.dp else 1.dp, if (elegida) Colores.azul else Colores.borde),
                             modifier = Modifier
@@ -188,7 +187,7 @@ fun FormularioVentana(factorVenta: Double, alGuardar: suspend (Ventana) -> Unit,
                 Text(
                     "Se refuerza desde ${pauta!!.horizontalReforzada} mm de ancho y ${pauta!!.verticalReforzada} mm de alto.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF8A5300),
+                    color = Colores.aviso,
                 )
             }
             CampoTexto("Ítem (dónde va)", item, { item = it }, ayuda = "Ej: Living, Dormitorio 1. Si lo dejas vacío se usa el nombre de la pauta.")
@@ -239,7 +238,7 @@ fun FormularioVentana(factorVenta: Double, alGuardar: suspend (Ventana) -> Unit,
                                 "${pesos(venta)} c/u · ${pesos(venta * unidades)} en total",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Colores.menuFondo,
+                                color = Colores.textoFuerte,
                             )
                             Text("Costo de fabricación: ${pesos(costo!!)} c/u (sin IVA)", style = MaterialTheme.typography.bodySmall, color = Colores.textoSecundario)
                         }

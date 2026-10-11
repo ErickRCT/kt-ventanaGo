@@ -25,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -68,9 +67,9 @@ private val ESTADOS_ADMIN = listOf("PENDIENTE", "ADJUDICADA", "TERMINADA", "CANC
 fun EtiquetaOferta(s: Solicitud) {
     val mia = s.miOferta ?: return EtiquetaEstadoSolicitud(s.estado)
     when {
-        mia.estado == "ELEGIDA" -> Etiqueta(if (s.estado == "TERMINADA") "Terminada" else "¡Ganada!", Color(0xFFE8F5E9), Colores.exito)
-        mia.tipo == "RECHAZADA" -> Etiqueta("No tomada", Color(0xFFEDEFF2), Colores.gris)
-        mia.estado == "DESCARTADA" -> Etiqueta(if (s.estado == "CANCELADA") "Cancelada" else "Otro proveedor", Color(0xFFEDEFF2), Colores.gris)
+        mia.estado == "ELEGIDA" -> Etiqueta(if (s.estado == "TERMINADA") "Terminada" else "¡Ganada!", Colores.exitoFondo, Colores.exito)
+        mia.tipo == "RECHAZADA" -> Etiqueta("No tomada", Colores.neutroFondo, Colores.gris)
+        mia.estado == "DESCARTADA" -> Etiqueta(if (s.estado == "CANCELADA") "Cancelada" else "Otro proveedor", Colores.neutroFondo, Colores.gris)
         else -> Etiqueta("Oferta enviada", Colores.azulClaro, Colores.azul)
     }
 }
@@ -134,8 +133,8 @@ fun PantallaSolicitudesEmpresa(esAdmin: Boolean, vm: SolicitudesEmpresaViewModel
                     val porOfertar = !esAdmin && bandeja(s) == Bandeja.POR_OFERTAR
                     Card(
                         onClick = { alAbrir(s.numero) },
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        border = BorderStroke(1.dp, if (porOfertar) Color(0xFFF2C46D) else Colores.borde),
+                        colors = CardDefaults.cardColors(containerColor = Colores.superficie),
+                        border = BorderStroke(1.dp, if (porOfertar) Colores.avisoBorde else Colores.borde),
                         shape = RoundedCornerShape(12.dp),
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -175,7 +174,7 @@ fun PantallaSolicitudesEmpresa(esAdmin: Boolean, vm: SolicitudesEmpresaViewModel
                                         else -> "Ver ›"
                                     },
                                     fontWeight = FontWeight.Bold,
-                                    color = if (porOfertar) Color(0xFF8A5300) else Colores.menuFondo,
+                                    color = if (porOfertar) Colores.aviso else Colores.textoFuerte,
                                 )
                             }
                         }

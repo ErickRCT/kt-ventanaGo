@@ -5,6 +5,13 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
+    <!-- Arranque: el logo sobre el azul de la marca mientras abre la app; después sigue Theme.VentanaGo. -->
+    <style name="Theme.VentanaGo.Arranque" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/azul_ventanago</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.VentanaGo</item>
+    </style>
+
     <!-- Realidad aumentada: fondo negro mientras abre la cámara. -->
     <style name="Theme.VentanaGo.Camara" parent="Theme.VentanaGo">
         <item name="android:windowBackground">@android:color/black</item>

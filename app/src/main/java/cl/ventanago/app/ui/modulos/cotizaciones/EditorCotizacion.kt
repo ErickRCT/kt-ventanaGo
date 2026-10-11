@@ -42,7 +42,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -99,12 +98,12 @@ fun EditorCotizacion(id: Long?, terminar: (String?) -> Unit) {
                             TextButton(
                                 onClick = { e.tarea("Guardando…") { e.guardar() } },
                                 enabled = e.trabajando == null && e.cotizacion != null,
-                            ) { Text("GUARDAR", color = Color.White, fontWeight = FontWeight.Bold) }
+                            ) { Text("GUARDAR", color = Colores.sobreBarra, fontWeight = FontWeight.Bold) }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Colores.azul,
-                            titleContentColor = Color.White,
-                            navigationIconContentColor = Color.White,
+                            containerColor = Colores.barra,
+                            titleContentColor = Colores.sobreBarra,
+                            navigationIconContentColor = Colores.sobreBarra,
                         ),
                     )
                     if (e.trabajando != null) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -250,7 +249,7 @@ private fun BloqueResumen(e: EstadoEditorCotizacion) {
             Text("Total", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             Text(pesos(resumen.total), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Colores.azul)
         }
-        if (e.sinGuardar) Text("Hay cambios sin guardar.", style = MaterialTheme.typography.bodySmall, color = Color(0xFF8A5300))
+        if (e.sinGuardar) Text("Hay cambios sin guardar.", style = MaterialTheme.typography.bodySmall, color = Colores.aviso)
     }
 }
 

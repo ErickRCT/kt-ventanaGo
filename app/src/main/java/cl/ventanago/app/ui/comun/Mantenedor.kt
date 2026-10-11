@@ -39,7 +39,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cl.ventanago.app.datos.mensaje
@@ -129,8 +128,8 @@ fun <T> Mantenedor(
                     singleLine = true,
                     shape = RoundedCornerShape(24.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedContainerColor = Color.White,
-                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Colores.superficie,
+                        focusedContainerColor = Colores.superficie,
                         unfocusedBorderColor = Colores.borde,
                     ),
                     modifier = Modifier
@@ -176,7 +175,7 @@ fun <T> Mantenedor(
                                         }
                                     },
                                     enabled = editable,
-                                    colors = CardDefaults.cardColors(containerColor = Color.White, disabledContainerColor = Color.White),
+                                    colors = CardDefaults.cardColors(containerColor = Colores.superficie, disabledContainerColor = Colores.superficie),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                                     shape = RoundedCornerShape(12.dp),
                                 ) {
@@ -214,7 +213,7 @@ fun <T> Mantenedor(
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                 text = { Text(textoNuevo) },
                 containerColor = Colores.azul,
-                contentColor = Color.White,
+                contentColor = Colores.sobreAzul,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(16.dp),

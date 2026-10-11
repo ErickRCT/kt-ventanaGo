@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.ViewInAr
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -47,7 +48,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -179,7 +179,7 @@ private fun SelectorPauta(pautas: List<PautaCliente>, alElegir: (PautaCliente) -
             items(delaSerie, key = { it.pauta.pautaId ?: it.pauta.nombre }) { p ->
                 Card(
                     onClick = { alElegir(p) },
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = Colores.superficie),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                     shape = RoundedCornerShape(12.dp),
                 ) {
@@ -305,13 +305,13 @@ private fun ConfigurarVentana(elegida: PautaCliente, alCambiarPauta: () -> Unit,
         if (catalogoBasico) MensajeError("No se pudo cargar el catálogo de colores y vidrios; se muestran opciones básicas sin precio.")
 
         // Vista previa y realidad aumentada
-        Card(colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, Colores.borde), shape = RoundedCornerShape(12.dp)) {
+        Card(colors = CardDefaults.cardColors(containerColor = Colores.superficie), border = BorderStroke(1.dp, Colores.borde), shape = RoundedCornerShape(12.dp)) {
             Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     Modifier
                         .fillMaxWidth()
                         .height(210.dp)
-                        .background(Color(0xFFEFF2F6), RoundedCornerShape(10.dp)),
+                        .background(Colores.superficieTenue, RoundedCornerShape(10.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     DibujoVentana(config, Modifier.fillMaxSize().padding(12.dp))
@@ -342,7 +342,7 @@ private fun ConfigurarVentana(elegida: PautaCliente, alCambiarPauta: () -> Unit,
         }
 
         if (pauta.isReforzada == true) {
-            Surface(color = if (conRefuerzo) Color(0xFFFFF4E5) else Colores.azulClaro, shape = RoundedCornerShape(10.dp)) {
+            Surface(color = if (conRefuerzo) Colores.avisoFondo else Colores.azulClaro, shape = RoundedCornerShape(10.dp)) {
                 Text(
                     if (conRefuerzo) "Con estas medidas la ventana lleva perfiles reforzados."
                     else "Desde ${pauta.horizontalReforzada} mm de ancho o ${pauta.verticalReforzada} mm de alto lleva perfiles reforzados.",
@@ -386,7 +386,7 @@ private fun ConfigurarVentana(elegida: PautaCliente, alCambiarPauta: () -> Unit,
                         val unidades = (cantidad.toIntOrNull() ?: 1).coerceAtLeast(1)
                         val neto = (costo!! * factorVenta(GANANCIA_REFERENCIAL, 0)).roundToLong()
                         val conIva = (neto * 1.19).roundToLong()
-                        Text("${pesos(conIva)} c/u con IVA", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Colores.menuFondo)
+                        Text("${pesos(conIva)} c/u con IVA", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Colores.textoFuerte)
                         if (unidades > 1) Text("${pesos(conIva * unidades)} por $unidades unidades", style = MaterialTheme.typography.bodyMedium)
                         Text("Neto ${pesos(neto)} + IVA. La empresa confirma el precio final al responder tu solicitud.", style = MaterialTheme.typography.bodySmall, color = Colores.textoSecundario)
                     }
@@ -440,7 +440,7 @@ private fun ConfigurarVentana(elegida: PautaCliente, alCambiarPauta: () -> Unit,
                 .fillMaxWidth()
                 .height(50.dp),
         ) {
-            if (agregando) CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
+            if (agregando) CircularProgressIndicator(Modifier.size(22.dp), color = LocalContentColor.current, strokeWidth = 2.dp)
             else {
                 Icon(Icons.Filled.AddShoppingCart, contentDescription = null)
                 Text("  Agregar al carrito")

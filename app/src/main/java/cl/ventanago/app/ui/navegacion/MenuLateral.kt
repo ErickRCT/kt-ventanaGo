@@ -86,7 +86,7 @@ fun MenuLateral(
                 Box(
                     Modifier
                         .size(44.dp)
-                        .background(Colores.azul, RoundedCornerShape(12.dp)),
+                        .background(Colores.marca, RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Image(painterResource(R.drawable.ic_launcher_foreground), contentDescription = null, modifier = Modifier.size(44.dp))

@@ -13,7 +13,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -30,8 +29,8 @@ import cl.ventanago.app.ui.modulos.Etiqueta
 
 @Composable
 private fun EtiquetaEstado(estado: String?) = when (nombreEstado(estado)) {
-    "Aprobada" -> Etiqueta("Aprobada", Color(0xFFE8F5E9), Colores.exito)
-    "Rechazada" -> Etiqueta("Rechazada", Color(0xFFFDECEA), Colores.error)
+    "Aprobada" -> Etiqueta("Aprobada", Colores.exitoFondo, Colores.exito)
+    "Rechazada" -> Etiqueta("Rechazada", Colores.errorFondo, Colores.error)
     else -> Etiqueta(nombreEstado(estado), Colores.fondo, Colores.textoSecundario)
 }
 
@@ -81,7 +80,7 @@ fun PantallaCotizaciones(nuevaAlAbrir: Boolean = false, alCerrarNueva: () -> Uni
             Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 EtiquetaEstado(c.estado)
                 Etiqueta("${c.ventanas.orEmpty().sumOf { it.cantidad ?: 1 }} unid.", Colores.fondo, Colores.textoSecundario)
-                Text(pesos(total), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Colores.menuFondo)
+                Text(pesos(total), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Colores.textoFuerte)
             }
         }
     }

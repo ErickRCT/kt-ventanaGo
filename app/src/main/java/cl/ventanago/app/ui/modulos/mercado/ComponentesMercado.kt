@@ -50,9 +50,9 @@ import kotlinx.coroutines.CancellationException
 @Composable
 fun EtiquetaEstadoSolicitud(estado: String) = when (estado) {
     "ADJUDICADA" -> Etiqueta("Adjudicada", Colores.azulClaro, Colores.azul)
-    "TERMINADA" -> Etiqueta("Terminada", Color(0xFFE8F5E9), Colores.exito)
-    "CANCELADA" -> Etiqueta("Cancelada", Color(0xFFEDEFF2), Colores.gris)
-    else -> Etiqueta(nombreEstadoSolicitud(estado), Color(0xFFFFF4E5), Color(0xFF8A5300))
+    "TERMINADA" -> Etiqueta("Terminada", Colores.exitoFondo, Colores.exito)
+    "CANCELADA" -> Etiqueta("Cancelada", Colores.neutroFondo, Colores.gris)
+    else -> Etiqueta(nombreEstadoSolicitud(estado), Colores.avisoFondo, Colores.aviso)
 }
 
 // ---------- Estrellas ----------
@@ -119,7 +119,7 @@ fun experiencia(p: ProveedorResumen) = listOfNotNull(
 fun TarjetaProveedor(p: ProveedorResumen, alTocar: () -> Unit, extra: @Composable () -> Unit = {}) {
     Card(
         onClick = alTocar,
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Colores.superficie),
         border = BorderStroke(1.dp, Colores.borde),
         shape = RoundedCornerShape(12.dp),
     ) {

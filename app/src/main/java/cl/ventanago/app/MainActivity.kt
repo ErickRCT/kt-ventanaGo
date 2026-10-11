@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import cl.ventanago.app.datos.Autenticacion
 import cl.ventanago.app.datos.CarritoLocal
 import cl.ventanago.app.notificaciones.Push
@@ -28,15 +29,16 @@ class MainActivity : ComponentActivity() {
     private var solicitudNotificada by mutableStateOf<Long?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         CarritoLocal.iniciar(applicationContext)
         Push.crearCanal(applicationContext)
         // Al recrearse (p. ej. al girar) el intent es el mismo: la notificación ya se atendió.
         if (savedInstanceState == null) leerNotificacion(intent)
-        // Barras del sistema transparentes con íconos oscuros (el encabezado es blanco, como en la web).
+        // Barras del sistema transparentes; los íconos son oscuros o claros según el modo del teléfono.
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
+            statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
         )
         setContent {
             TemaVentanaGo {

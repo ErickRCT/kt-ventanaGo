@@ -88,7 +88,7 @@ fun PantallaInicio(nombre: String, abrir: (Pantalla) -> Unit) {
                 Modifier
                     .fillMaxWidth()
                     .background(
-                        Brush.linearGradient(listOf(Colores.azul, Colores.menuFondo)),
+                        Brush.linearGradient(listOf(Colores.marca, Colores.menuFondo)),
                         RoundedCornerShape(16.dp),
                     )
                     .padding(20.dp),
@@ -113,7 +113,7 @@ fun PantallaInicio(nombre: String, abrir: (Pantalla) -> Unit) {
         items(conteos.keys.toList()) { pantalla ->
             Card(
                 onClick = { abrir(pantalla) },
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = Colores.superficie),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 shape = RoundedCornerShape(14.dp),
             ) {
@@ -139,16 +139,16 @@ fun PantallaInicio(nombre: String, abrir: (Pantalla) -> Unit) {
                 Modifier
                     .fillMaxWidth()
                     .padding(top = 4.dp)
-                    .background(Color(0xFFFFF4E5), RoundedCornerShape(12.dp))
+                    .background(Colores.avisoFondo, RoundedCornerShape(12.dp))
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Outlined.Construction, contentDescription = null, tint = Color(0xFF8A5300))
+                Icon(Icons.Outlined.Construction, contentDescription = null, tint = Colores.aviso)
                 Spacer(Modifier.width(10.dp))
                 Text(
                     "Las vistas de Cliente y Empresa se migran en la siguiente etapa; por ahora siguen en la versión web.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF5C3A00),
+                    color = Colores.avisoTexto,
                 )
             }
         }
