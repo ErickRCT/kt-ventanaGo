@@ -75,7 +75,7 @@ internal fun <T> rememberOpciones(cargar: suspend () -> List<T>, alFallar: (Stri
 // ---------- Perfiles ----------
 
 @Composable
-fun PantallaPerfiles() = Mantenedor(
+fun PantallaPerfiles(soloLectura: Boolean = false) = Mantenedor(
     titulo = "Perfiles",
     descripcion = "Perfiles de aluminio por serie, con su peso por metro.",
     cargar = { Recursos.perfiles.listar().sortedWith(compareBy({ it.serie?.nombre?.lowercase() }, { it.codigo.lowercase() })) },
@@ -85,6 +85,7 @@ fun PantallaPerfiles() = Mantenedor(
     textoNuevo = "Nuevo perfil",
     formulario = { item, terminar -> FormularioPerfil(item, terminar) },
     eliminar = { Recursos.perfiles.eliminar(it.perfilId!!) },
+    soloLectura = soloLectura,
 ) { perfil ->
     Column(Modifier.weight(1f)) {
         Text(
@@ -180,7 +181,7 @@ private fun FormularioPerfil(inicial: Perfil?, terminar: (String?) -> Unit) {
 // ---------- Quincallería ----------
 
 @Composable
-fun PantallaQuincalleria() = Mantenedor(
+fun PantallaQuincalleria(soloLectura: Boolean = false) = Mantenedor(
     titulo = "Quincallería",
     descripcion = "Accesorios y herrajes por serie (manillas, rodamientos, felpas…).",
     cargar = { Recursos.quincallerias.listar().sortedWith(compareBy({ it.serie?.nombre?.lowercase() }, { it.nombre.lowercase() })) },
@@ -190,6 +191,7 @@ fun PantallaQuincalleria() = Mantenedor(
     textoNuevo = "Nueva",
     formulario = { item, terminar -> FormularioQuincalleria(item, terminar) },
     eliminar = { Recursos.quincallerias.eliminar(it.quincalleriaId!!) },
+    soloLectura = soloLectura,
 ) { q ->
     ImagenCatalogo(q.rutaImagen)
     Spacer(Modifier.width(12.dp))
@@ -250,9 +252,10 @@ private fun FormularioQuincalleria(inicial: Quincalleria?, terminar: (String?) -
 // ---------- Tipos de pauta ----------
 
 @Composable
-fun PantallaTiposPauta() = Mantenedor(
+fun PantallaTiposPauta(soloLectura: Boolean = false) = Mantenedor(
     titulo = "Tipos de pauta",
-    descripcion = "Familias de productos (ventana corredera, abatible, puerta…). El servidor aún no permite editarlos ni eliminarlos.",
+    descripcion = "Familias de productos (ventana corredera, abatible, puerta…)." +
+        if (soloLectura) "" else " El servidor aún no permite editarlos ni eliminarlos.",
     cargar = { Recursos.tiposPauta.listar().sortedBy { it.nombre.lowercase() } },
     clave = { it.tipoPautaId ?: it.nombre },
     textoBusqueda = { it.nombre },
@@ -260,6 +263,7 @@ fun PantallaTiposPauta() = Mantenedor(
     textoNuevo = "Nuevo tipo",
     formulario = { _, terminar -> FormularioTipoPauta(terminar) },
     editable = false,
+    soloLectura = soloLectura,
 ) { tipo ->
     ImagenCatalogo(tipo.rutaImagen)
     Spacer(Modifier.width(12.dp))

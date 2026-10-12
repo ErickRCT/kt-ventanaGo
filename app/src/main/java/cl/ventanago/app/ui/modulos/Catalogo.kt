@@ -47,7 +47,7 @@ fun soloDigitos(texto: String) = texto.filter { it.isDigit() }.take(12)
 // ---------- Series ----------
 
 @Composable
-fun PantallaSeries() = Mantenedor(
+fun PantallaSeries(soloLectura: Boolean = false) = Mantenedor(
     titulo = "Series",
     descripcion = "Líneas de perfiles de aluminio con las que se fabrican las ventanas.",
     cargar = { Recursos.series.listar().sortedBy { it.nombre.lowercase() } },
@@ -57,6 +57,7 @@ fun PantallaSeries() = Mantenedor(
     textoNuevo = "Nueva serie",
     formulario = { item, terminar -> FormularioSerie(item, terminar) },
     eliminar = { Recursos.series.eliminar(it.serieId!!) },
+    soloLectura = soloLectura,
 ) { TextosFila(it.nombre, it.descripcion) }
 
 @Composable
@@ -89,7 +90,7 @@ private fun FormularioSerie(inicial: Serie?, terminar: (String?) -> Unit) {
 // ---------- Tipos de perfil ----------
 
 @Composable
-fun PantallaTiposPerfil() = Mantenedor(
+fun PantallaTiposPerfil(soloLectura: Boolean = false) = Mantenedor(
     titulo = "Tipos de perfil",
     descripcion = "Clasificación de los perfiles (marco, hoja, pilastra, etc.).",
     cargar = { Recursos.tiposPerfil.listar().sortedBy { it.nombre.lowercase() } },
@@ -99,6 +100,7 @@ fun PantallaTiposPerfil() = Mantenedor(
     textoNuevo = "Nuevo tipo",
     formulario = { item, terminar -> FormularioTipoPerfil(item, terminar) },
     eliminar = { Recursos.tiposPerfil.eliminar(it.tipoPerfilId!!) },
+    soloLectura = soloLectura,
 ) { TextosFila(it.nombre) }
 
 @Composable
@@ -129,7 +131,7 @@ private fun FormularioTipoPerfil(inicial: TipoPerfil?, terminar: (String?) -> Un
 // ---------- Colores y vidrios (nombre + valor) ----------
 
 @Composable
-fun PantallaColores() = Mantenedor(
+fun PantallaColores(soloLectura: Boolean = false) = Mantenedor(
     titulo = "Colores",
     descripcion = "Colores del aluminio y su valor para la cotización.",
     cargar = { Recursos.colores.listar().sortedBy { it.nombre.lowercase() } },
@@ -150,10 +152,11 @@ fun PantallaColores() = Mantenedor(
         }
     },
     eliminar = { Recursos.colores.eliminar(it.colorId!!) },
+    soloLectura = soloLectura,
 ) { TextosFila(it.nombre, destacado = pesos(it.valor)) }
 
 @Composable
-fun PantallaVidrios() = Mantenedor(
+fun PantallaVidrios(soloLectura: Boolean = false) = Mantenedor(
     titulo = "Vidrios",
     descripcion = "Tipos de vidrio disponibles y su valor.",
     cargar = { Recursos.vidrios.listar().sortedBy { it.nombre.lowercase() } },
@@ -174,6 +177,7 @@ fun PantallaVidrios() = Mantenedor(
         }
     },
     eliminar = { Recursos.vidrios.eliminar(it.vidrioId!!) },
+    soloLectura = soloLectura,
 ) { TextosFila(it.nombre, destacado = pesos(it.valor)) }
 
 @Composable

@@ -1,22 +1,32 @@
 package cl.ventanago.app.ui.modulos.mercado
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.LocalContentColor
@@ -32,6 +42,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -52,16 +63,19 @@ import cl.ventanago.app.ui.comun.EstadoError
 import cl.ventanago.app.ui.comun.LocalAvisos
 import cl.ventanago.app.ui.comun.MensajeError
 import cl.ventanago.app.ui.modulos.soloDigitos
+import cl.ventanago.app.ui.navegacion.Pantalla
+import cl.ventanago.app.ui.navegacion.catalogoEmpresa
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 /**
  * Perfil del proveedor: nombre, descripción, servicios que presta y comunas donde trabaja.
  * Las solicitudes nuevas le llegan solo si son de sus comunas y de alguno de sus servicios.
+ * Al final, el catálogo de VentanaGo (series, pautas, colores…) para consultarlo; [alAbrirCatalogo] abre una parte.
  */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-fun PantallaMiPerfil() {
+fun PantallaMiPerfil(alAbrirCatalogo: (Pantalla) -> Unit) {
     val avisar = LocalAvisos.current
     val alcance = rememberCoroutineScope()
     var cargado by remember { mutableStateOf<PerfilProveedor?>(null) }
@@ -207,7 +221,43 @@ fun PantallaMiPerfil() {
                 .height(50.dp)) {
                 if (guardando) CircularProgressIndicator(Modifier.size(22.dp), color = LocalContentColor.current, strokeWidth = 2.dp) else Text("Guardar perfil")
             }
+
+            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = Colores.borde)
+            Text("Catálogo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Series, pautas, perfiles y materiales con que se calculan las ventanas que diseñan los clientes. Por ahora solo puedes consultarlos.", color = Colores.gris)
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Colores.superficie),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                catalogoEmpresa.forEachIndexed { i, p ->
+                    if (i > 0) HorizontalDivider(Modifier.padding(start = 64.dp), color = Colores.borde)
+                    FilaCatalogo(p) { alAbrirCatalogo(p) }
+                }
+            }
             Spacer(Modifier.height(16.dp))
         }
+    }
+}
+
+/** Una parte del catálogo: icono, nombre y flecha; al tocarla se abre. */
+@Composable
+private fun FilaCatalogo(pantalla: Pantalla, alTocar: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = alTocar)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(36.dp)
+                .background(Colores.azulClaro, RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center,
+        ) { Icon(pantalla.icono, contentDescription = null, tint = Colores.azul, modifier = Modifier.size(20.dp)) }
+        Spacer(Modifier.width(14.dp))
+        Text(pantalla.titulo, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Colores.gris)
     }
 }

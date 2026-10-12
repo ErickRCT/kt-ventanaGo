@@ -55,6 +55,8 @@ import java.text.Normalizer
  *
  * [formulario] recibe el registro a editar (null = nuevo) y una función para cerrarlo: con un mensaje
  * cuando se guardó (se muestra y la lista se recarga) o con null si se canceló.
+ *
+ * [soloLectura]: solo se consulta (sin crear, editar ni eliminar), como la empresa con el catálogo de VentanaGo.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,8 +71,12 @@ fun <T> Mantenedor(
     formulario: @Composable (item: T?, alTerminar: (String?) -> Unit) -> Unit,
     eliminar: (suspend (T) -> Unit)? = null,
     editable: Boolean = true,
+    soloLectura: Boolean = false,
     fila: @Composable RowScope.(T) -> Unit,
 ) {
+    @Suppress("NAME_SHADOWING") val textoNuevo = textoNuevo.takeUnless { soloLectura }
+    @Suppress("NAME_SHADOWING") val eliminar = eliminar.takeUnless { soloLectura }
+    @Suppress("NAME_SHADOWING") val editable = editable && !soloLectura
     val avisar = LocalAvisos.current
     val alcance = rememberCoroutineScope()
 
@@ -116,6 +122,14 @@ fun <T> Mantenedor(
                     }
                 }
                 Text(descripcion, style = MaterialTheme.typography.bodyMedium, color = Colores.gris)
+                if (soloLectura) {
+                    Text(
+                        "Solo consulta: este catálogo lo administra VentanaGo.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Colores.textoSecundario,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
                 OutlinedTextField(
                     value = busqueda,
                     onValueChange = { busqueda = it },

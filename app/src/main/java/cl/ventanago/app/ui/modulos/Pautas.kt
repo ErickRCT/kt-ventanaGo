@@ -60,7 +60,7 @@ import cl.ventanago.app.ui.comun.rememberEstadoGuardado
 // ---------- Lista ----------
 
 @Composable
-fun PantallaPautas() = Mantenedor(
+fun PantallaPautas(soloLectura: Boolean = false) = Mantenedor(
     titulo = "Pautas",
     descripcion = "Receta de fabricación de cada producto: perfiles, quincallería y vidrios con sus descuentos.",
     cargar = { Recursos.pautas.listar().sortedWith(compareBy({ it.serie?.nombre?.lowercase() }, { it.nombre.lowercase() })) },
@@ -75,6 +75,7 @@ fun PantallaPautas() = Mantenedor(
     textoNuevo = "Nueva pauta",
     formulario = { item, terminar -> FormularioPauta(item, terminar) },
     eliminar = { Recursos.pautas.eliminar(it.pautaId!!) },
+    soloLectura = soloLectura,
 ) { p ->
     Column(Modifier.weight(1f)) {
         Text(p.nombre, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)

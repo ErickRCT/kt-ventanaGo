@@ -89,7 +89,16 @@ fun gruposDe(rol: Rol) = gruposMenu.filter { rol in it.roles }.map { g ->
     if (rol == Rol.ADMIN && Pantalla.MI_PERFIL in g.pantallas) GrupoMenu(g.id, g.titulo, g.icono, g.roles, g.pantallas - Pantalla.MI_PERFIL) else g
 }
 
-fun Rol.puedeVer(p: Pantalla) = gruposDe(this).any { p in it.pantallas }
+/** Catálogo que la empresa consulta desde Mi perfil (solo lectura: lo administra VentanaGo). */
+val catalogoEmpresa = listOf(
+    Pantalla.SERIES, Pantalla.PAUTAS, Pantalla.TIPOS_PAUTA, Pantalla.PERFILES, Pantalla.TIPOS_PERFIL,
+    Pantalla.QUINCALLERIA, Pantalla.VIDRIOS, Pantalla.COLORES,
+)
+
+/** Para la empresa, cada parte del catálogo es una subpantalla de Mi perfil (con flecha para volver, sin barra inferior). */
+fun Rol.esCatalogoEmpresa(p: Pantalla) = this == Rol.PROVEEDOR && p in catalogoEmpresa
+
+fun Rol.puedeVer(p: Pantalla) = gruposDe(this).any { p in it.pantallas } || esCatalogoEmpresa(p)
 
 /** Pestañas de la barra inferior: el cliente y la empresa navegan con ella; el administrador (null), con el menú lateral. */
 fun pestanasDe(rol: Rol): List<Pantalla>? = if (rol == Rol.ADMIN) null else gruposDe(rol).flatMap { it.pantallas }

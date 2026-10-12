@@ -116,9 +116,10 @@ fun Panel(
     val enDetalle = ruta == RUTA_SOLICITUD_EMPRESA
     val enAvisos = ruta == RUTA_AVISOS
     val enMiSolicitud = ruta == RUTA_MI_SOLICITUD
-    // Pantallas internas (avisos, detalle de una solicitud del cliente): flecha para volver y sin barra inferior.
-    val enSubpantalla = enAvisos || enMiSolicitud
     val pestanas = pestanasDe(rol)
+    // Pantallas internas (avisos, detalle de una solicitud del cliente, catálogo de la empresa): flecha para volver
+    // y sin barra inferior.
+    val enSubpantalla = enAvisos || enMiSolicitud || rol.esCatalogoEmpresa(pantalla)
     val nombre = sesion?.let { it.cuenta.nombre?.takeIf { n -> n.isNotBlank() } ?: it.cuenta.email.substringBefore('@') } ?: "Invitado"
     val email = sesion?.cuenta?.email.orEmpty()
     var trasIngresoAtendido by rememberSaveable { mutableStateOf(false) }
@@ -359,20 +360,22 @@ private fun Contenido(
     alPedirIngreso: (motivo: String?, volverA: Pantalla?) -> Unit,
 ) {
     val abrir: (Pantalla) -> Unit = { navegacion.abrir(it) }
+    // Solo el administrador edita el catálogo; la empresa lo consulta.
+    val soloLectura = rol != Rol.ADMIN
     if (!p.disponible) return PantallaProximamente(p)
     when (p) {
         Pantalla.INICIO -> PantallaInicio(nombre, abrir)
         Pantalla.CREAR_COTIZACION -> PantallaCotizaciones(nuevaAlAbrir = true, alCerrarNueva = { navegacion.abrirSeccion(Pantalla.COTIZACIONES) })
         Pantalla.COTIZACIONES -> PantallaCotizaciones()
         Pantalla.CLIENTES -> PantallaClientes()
-        Pantalla.PAUTAS -> PantallaPautas()
-        Pantalla.TIPOS_PAUTA -> PantallaTiposPauta()
-        Pantalla.PERFILES -> PantallaPerfiles()
-        Pantalla.TIPOS_PERFIL -> PantallaTiposPerfil()
-        Pantalla.QUINCALLERIA -> PantallaQuincalleria()
-        Pantalla.VIDRIOS -> PantallaVidrios()
-        Pantalla.COLORES -> PantallaColores()
-        Pantalla.SERIES -> PantallaSeries()
+        Pantalla.PAUTAS -> PantallaPautas(soloLectura)
+        Pantalla.TIPOS_PAUTA -> PantallaTiposPauta(soloLectura)
+        Pantalla.PERFILES -> PantallaPerfiles(soloLectura)
+        Pantalla.TIPOS_PERFIL -> PantallaTiposPerfil(soloLectura)
+        Pantalla.QUINCALLERIA -> PantallaQuincalleria(soloLectura)
+        Pantalla.VIDRIOS -> PantallaVidrios(soloLectura)
+        Pantalla.COLORES -> PantallaColores(soloLectura)
+        Pantalla.SERIES -> PantallaSeries(soloLectura)
         Pantalla.DISENAR_VENTANA -> PantallaDisenar(abrir, conCuenta = sesion != null)
         Pantalla.CARRITO -> PantallaCarrito(
             emailCuenta = email,
@@ -397,6 +400,6 @@ private fun Contenido(
             vm = modeloDelGrafo(navegacion, entrada),
             alAbrir = { navegacion.navigate(rutaSolicitudEmpresa(it)) },
         )
-        Pantalla.MI_PERFIL -> PantallaMiPerfil()
+        Pantalla.MI_PERFIL -> PantallaMiPerfil(alAbrirCatalogo = abrir)
     }
 }
