@@ -80,6 +80,7 @@ import cl.ventanago.app.ui.modulos.cliente.PantallaDetalleCotizacion
 import cl.ventanago.app.ui.modulos.cliente.PantallaDisenar
 import cl.ventanago.app.ui.modulos.cliente.PantallaMisCotizaciones
 import cl.ventanago.app.ui.modulos.cotizaciones.PantallaCotizaciones
+import cl.ventanago.app.ui.modulos.empresa.PantallaCatalogoEmpresa
 import cl.ventanago.app.ui.modulos.empresa.PantallaDetalleSolicitudEmpresa
 import cl.ventanago.app.ui.modulos.empresa.PantallaSolicitudesEmpresa
 import cl.ventanago.app.ui.modulos.mercado.PantallaMiPerfil
@@ -400,6 +401,7 @@ private fun Contenido(
             vm = modeloDelGrafo(navegacion, entrada),
             alAbrir = { navegacion.navigate(rutaSolicitudEmpresa(it)) },
         )
-        Pantalla.MI_PERFIL -> PantallaMiPerfil(alAbrirCatalogo = abrir)
+        Pantalla.CATALOGO_EMPRESA -> PantallaCatalogoEmpresa(alAbrir = abrir)
+        Pantalla.MI_PERFIL -> PantallaMiPerfil()
     }
 }

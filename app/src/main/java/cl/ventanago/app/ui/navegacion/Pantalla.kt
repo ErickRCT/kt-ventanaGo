@@ -6,6 +6,7 @@ import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.ViewInAr
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ShoppingCart
@@ -61,6 +63,7 @@ enum class Pantalla(
     MIS_COTIZACIONES("Mis cotizaciones", Icons.Outlined.History, "Cotizaciones", Icons.Filled.History),
     PROVEEDORES("Proveedores", Icons.Outlined.Storefront, iconoActivo = Icons.Filled.Storefront),
     SOLICITUDES("Solicitudes", Icons.Outlined.Inbox, iconoActivo = Icons.Filled.Inbox),
+    CATALOGO_EMPRESA("Catálogo", Icons.Outlined.Inventory2, iconoActivo = Icons.Filled.Inventory2),
     MI_PERFIL("Mi perfil", Icons.Outlined.Badge, iconoActivo = Icons.Filled.Badge),
 }
 
@@ -81,21 +84,24 @@ val gruposMenu = listOf(
         "cliente", "Cliente", Icons.Outlined.Person, setOf(Rol.ADMIN, Rol.CLIENTE, Rol.INVITADO),
         listOf(Pantalla.DISENAR_VENTANA, Pantalla.CARRITO, Pantalla.MIS_COTIZACIONES, Pantalla.PROVEEDORES),
     ),
-    GrupoMenu("empresa", "Empresa", Icons.Outlined.Business, setOf(Rol.ADMIN, Rol.PROVEEDOR), listOf(Pantalla.SOLICITUDES, Pantalla.MI_PERFIL)),
+    GrupoMenu(
+        "empresa", "Empresa", Icons.Outlined.Business, setOf(Rol.ADMIN, Rol.PROVEEDOR),
+        listOf(Pantalla.SOLICITUDES, Pantalla.CATALOGO_EMPRESA, Pantalla.MI_PERFIL),
+    ),
 )
 
-/** Mi perfil es solo de los proveedores: el administrador no oferta. */
+/** Mi perfil y Catálogo son solo de los proveedores: el administrador no oferta y edita el catálogo desde su menú. */
 fun gruposDe(rol: Rol) = gruposMenu.filter { rol in it.roles }.map { g ->
-    if (rol == Rol.ADMIN && Pantalla.MI_PERFIL in g.pantallas) GrupoMenu(g.id, g.titulo, g.icono, g.roles, g.pantallas - Pantalla.MI_PERFIL) else g
+    if (rol == Rol.ADMIN && g.id == "empresa") GrupoMenu(g.id, g.titulo, g.icono, g.roles, g.pantallas - Pantalla.MI_PERFIL - Pantalla.CATALOGO_EMPRESA) else g
 }
 
-/** Catálogo que la empresa consulta desde Mi perfil (solo lectura: lo administra VentanaGo). */
+/** Partes del catálogo que la empresa consulta desde su pestaña Catálogo (solo lectura: lo administra VentanaGo). */
 val catalogoEmpresa = listOf(
     Pantalla.SERIES, Pantalla.PAUTAS, Pantalla.TIPOS_PAUTA, Pantalla.PERFILES, Pantalla.TIPOS_PERFIL,
     Pantalla.QUINCALLERIA, Pantalla.VIDRIOS, Pantalla.COLORES,
 )
 
-/** Para la empresa, cada parte del catálogo es una subpantalla de Mi perfil (con flecha para volver, sin barra inferior). */
+/** Para la empresa, cada parte del catálogo es una subpantalla de su pestaña Catálogo (con flecha para volver, sin barra inferior). */
 fun Rol.esCatalogoEmpresa(p: Pantalla) = this == Rol.PROVEEDOR && p in catalogoEmpresa
 
 fun Rol.puedeVer(p: Pantalla) = gruposDe(this).any { p in it.pantallas } || esCatalogoEmpresa(p)
